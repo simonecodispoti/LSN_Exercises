@@ -11,4 +11,4 @@ random.o : random.cpp random.h
 	$(CC) -c random.cpp -o random.o $(CFLAGS)
 
 clean :
-	rm *.o exercise1.exe seed.out Mean.txt Mean_error.txt Var.txt Var_error.txt Chi2.txt
+	rm *.o exercise1.exe Mean.txt Mean_error.txt Var.txt Var_error.txt Chi2.txt

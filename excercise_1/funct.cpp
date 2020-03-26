@@ -27,6 +27,9 @@ void MC_MeanProg(double* media, const int n_step, const int n_cell, const double
 
 	double* ave = new double[n_cell];
 
+	for(int i=0; i<n_cell; i++)
+		media[i] =0;
+
 	for(int i=0; i<n_cell; i++){
 		double sum = 0;
 			for(int j=0; j<l; j++){
@@ -41,7 +44,7 @@ void MC_MeanProg(double* media, const int n_step, const int n_cell, const double
 			media[i] += ave[j];
 	media[i]/=(i+1);
 	}
-	
+
 	delete[] ave;
 }
 
@@ -58,6 +61,11 @@ void MC_ErrProg(double* errore, const int n_step, const int n_cell, const double
 	double* ave2 = new double [n_cell];
 	double* sum_prog = new double [n_cell];
 	double* sum2_prog = new double [n_cell];
+
+	for(int i=0; i<n_cell; i++){
+		sum_prog[i] = 0;
+		sum2_prog[i] = 0;
+	}
 
 	for(int i=0; i<n_cell; i++){
 		double sum = 0;
@@ -82,7 +90,7 @@ void MC_ErrProg(double* errore, const int n_step, const int n_cell, const double
 	}
 
 	errore[0] = 0;		//con un solo blocco non ho incertezza statistica
-	
+
 	delete[] ave;
 	delete[] ave2;
 	delete[] sum_prog;

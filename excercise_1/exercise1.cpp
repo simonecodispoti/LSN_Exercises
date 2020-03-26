@@ -43,6 +43,21 @@ int main(){
 
 	//******************************RANDOM_GEN******************************//
 
+	//---Media---//
+
+	double* mean_prog = new double [n_cell];
+	MC_MeanProg(mean_prog, n_step, n_cell, R);
+	Stampa("Mean.txt", mean_prog, n_cell);			//output: andamento del valor medio
+	
+	double* err1_prog = new double [n_cell];
+	MC_ErrProg(err1_prog, n_step, n_cell, R);
+	Stampa("Mean_error.txt", err1_prog, n_cell);		//output: andamento dell'incertezza sulla media
+
+	delete[] mean_prog;
+	delete[] err1_prog;
+
+	//---Varianza---//
+
 	double* V = new double [n_step];
 
 	for(int i=0; i<n_step; i++)				//la varaianza è la media del quadrato della distanza dall valor medio
@@ -55,18 +70,6 @@ int main(){
 	double* err2_prog = new double [n_cell];
 	MC_ErrProg(err2_prog, n_step, n_cell, V);
 	Stampa("Var_error.txt", err2_prog, n_cell);		//output: andamento dell'incertezza sulla varianza
-
-
-	double* mean_prog = new double [n_cell];
-	MC_MeanProg(mean_prog, n_step, n_cell, R);
-	Stampa("Mean.txt", mean_prog, n_cell);			//output: andamento del valor medio
-	
-	double* err1_prog = new double [n_cell];
-	MC_ErrProg(err1_prog, n_step, n_cell, R);
-	Stampa("Mean_error.txt", err1_prog, n_cell);		//output: andamento dell'incertezza sulla media
-
-	delete[] mean_prog;
-	delete[] err1_prog;
 
 	delete[] R;
 	delete[] V;
@@ -85,10 +88,10 @@ int main(){
 
 	for(int i=0; i<M; i++)
 		R2[i] = rnd.Rannyu();	
-	
-	double* chi2 = new double [n_cell];
+
 	double* atteso = new double [n_cell];
 	double* osservato = new double [n_cell];
+	double* chi2 = new double [n_cell];
 
 	for(int i=0; i<n_cell; i++)
 		atteso[i] = P_unif;
@@ -108,6 +111,7 @@ int main(){
 
 	Stampa("Chi2.txt", chi2, n_cell);
 	
+	delete[] R2;
 	delete[] atteso;
 	delete[] osservato; 
 	delete[] chi2;
