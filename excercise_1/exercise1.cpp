@@ -1,4 +1,4 @@
-#include "funct.h"
+#include "utilities.h"
 #include "random.h"
 using namespace std;
 
@@ -6,7 +6,7 @@ int main(){
 
 	//---|stima del valor medio e della varianza per una distribuzione uniforme|---//
 
-	int n_step = 10000;		//numero di step Montecarlo
+	int n_step = 10000;		//numero di step Monte Carlo
 	int n_cell = 100;		//numero di blocchi
 
 	//******************************RANDOM_GEN******************************//
@@ -96,12 +96,12 @@ int main(){
 	for(int i=0; i<n_cell; i++)
 		atteso[i] = P_unif;
 	
-	for(int i=0; i<n_cell; i++){
-		for(int l=0; l<n_cell; l++)
-			osservato[l] = 0;
-		for(int j=0; j<n_step; j++){
+	for(int i=0; i<n_cell; i++){			//ciclo sul numero di simulazioni (n_cell)
+		for(int l=0; l<n_cell; l++)		
+			osservato[l] = 0;		
+		for(int j=0; j<n_step; j++){		//ciclo interno ad ogni simulazione (n_step)
 			int pos = j+i*n_step;
-			for(int k=0; k<n_cell; k++){
+			for(int k=0; k<n_cell; k++){	//ciclo per valutare i conteggi in ogni "casella" che equipartiziona l'intervallo [0,1]
 				if(R2[pos] > double(k)/n_cell && R2[pos] < double(k+1)/n_cell)
 					osservato[k] += 1;
 			}
@@ -116,17 +116,168 @@ int main(){
 	delete[] osservato; 
 	delete[] chi2;
 
+
+	//---|Simulazione di un dado standard, esponenziale e lorentziano|---//
+
+	//Prima simulazione: getto il dado N=10000 volte
+
+	int N = 10000;
+
+	double* G1 = new double [N];
+	for(int i=0; i<N; i++)
+		G1[i] = rnd.Gauss(0,1);
+	
+	Stampa("Gauss_1.txt", G1, N);
+	delete[] G1;
+	
+	double* E1 = new double [N];
+	for(int i=0; i<N; i++)
+		E1[i] = rnd.Exp(1);
+
+	Stampa("Exp_1.txt", E1, N);
+	delete[] E1;
+
+	double* L1 = new double [N];
+	for(int i=0; i<N; i++)
+		L1[i] = rnd.Lorentz(0,1);
+
+	Stampa("Lorentz_1.txt", L1, N);
+	delete[] L1;
+
+	//Seconda simulazione: getto il dado N=2*10000=20000 volte e studio la variabile aleatoria x1 + x2
+
+	double* G2 = new double [N];
+	for(int i=0; i<N; i++)
+		G2[i] = (rnd.Gauss(0,1) + rnd.Gauss(0,1))/2;
+	
+	Stampa("Gauss_2.txt", G2, N);
+	delete[] G2;
+	
+	double* E2 = new double [N];
+	for(int i=0; i<N; i++)
+		E2[i] = (rnd.Exp(1) + rnd.Exp(1))/2;
+
+	Stampa("Exp_2.txt", E2, N);
+	delete[] E2;
+
+	double* L2 = new double [N];
+	for(int i=0; i<N; i++)
+		L2[i] = (rnd.Lorentz(0,1) + rnd.Lorentz(0,1))/2;
+
+	Stampa("Lorentz_2.txt", L2, N);
+	delete[] L2;
+
+	//Terza simulazione: getto il dado N=10*10000=10^5 volte e studio la variabile aleatoria x1 + x2 + ... + x10
+
+	double* G3 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<10; j++)
+			sum += rnd.Gauss(0,1);
+		sum/=10;
+		G3[i] = sum;
+	}
+
+	Stampa("Gauss_3.txt", G3, N);
+	delete[] G3;
+	
+	double* E3 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<10; j++)
+			sum += rnd.Exp(1);
+		sum/=10;
+		E3[i] = sum;
+	}
+
+	Stampa("Exp_3.txt", E3, N);
+	delete[] E3;
+
+	double* L3 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<10; j++)
+			sum += rnd.Lorentz(0,1);
+		sum/=10;
+		L3[i] = sum;
+	}
+
+	Stampa("Lorentz_3.txt", L3, N);
+	delete[] L3;
+
+	//Quarta simulazione: getto il dado N=100*10000=10^6 volte e studio la variabile aleatoria x1 + x2 + ... +x100
+
+	double* G4 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<100; j++)
+			sum += rnd.Gauss(0,1);
+		sum/=100;
+		G4[i] = sum;
+	}
+
+	Stampa("Gauss_4.txt", G4, N);
+	delete[] G4;
+
+	double* E4 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<100; j++)
+			sum += rnd.Exp(1);
+		sum/=100;
+		E4[i] = sum;
+	}
+
+	Stampa("Exp_4.txt", E4, N);
+	delete[] E4;
+
+	double* L4 = new double [N];
+	for(int i=0; i<N; i++){
+		double sum = 0;
+		for(int j=0; j<100; j++)
+			sum += rnd.Lorentz(0,1);
+		sum/=100;
+		L4[i] = sum;
+	}
+
+	Stampa("Lorentz_4.txt", L4, N);
+	delete[] L4;
+
+
+	//---|Simulazione dell'esperimento di Buffon|---//
+
+	//supponiamo di lanciare l'ago n_step = 1000 volte e ripetiamo l'esperimento n_cell = 100 volte ---> effettuo in totale n_step*n_cell = 100000 lanci 
+
+	n_step = 1000;
+	n_cell = 100;
+
+	double l = 4.5;		//lunghezza dell'ago in cm
+	double d = 7.0;		//distanza tra gli assi del parquet in cm :)
+
+	double* Pi = new double [n_cell];
+	
+	int n_hit = 0;
+
+	for(int i=0; i<n_cell; i++){
+		n_hit = 0;
+		for(int j=0; j<n_step; j++){
+			if (rnd.Rannyu(0,d/2) < l/2*sin(rnd.Rannyu(0,M_PI/2)))
+				n_hit++;
+		}
+	Pi[i] = (2*l*n_step)/(d*n_hit);
+	}
+
+	double* media = new double [n_cell];
+	MC_MeanProg(media, n_cell, n_cell, Pi);
+	Stampa("Pi.txt", media, n_cell);
+
+	double* errore = new double [n_cell];
+	MC_ErrProg(errore, n_cell, n_cell, Pi);
+	Stampa("Pi_error.txt", errore, n_cell);
+
+	delete[] Pi;
+	delete[] media;
+	delete[] errore;
+
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-

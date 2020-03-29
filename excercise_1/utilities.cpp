@@ -1,4 +1,4 @@
-#include "funct.h"
+#include "utilities.h"
 
 void Stampa(const char* filename, const double* v, const int dim){
 
@@ -25,7 +25,7 @@ void MC_MeanProg(double* media, const int n_step, const int n_cell, const double
 
 	int l = n_step/n_cell;
 
-	double* ave = new double[n_cell];
+	double ave [n_cell];
 
 	for(int i=0; i<n_cell; i++)
 		media[i] =0;
@@ -44,8 +44,6 @@ void MC_MeanProg(double* media, const int n_step, const int n_cell, const double
 			media[i] += ave[j];
 	media[i]/=(i+1);
 	}
-
-	delete[] ave;
 }
 
 void MC_ErrProg(double* errore, const int n_step, const int n_cell, const double* data){
@@ -57,10 +55,10 @@ void MC_ErrProg(double* errore, const int n_step, const int n_cell, const double
 
 	int l = n_step/n_cell;
 
-	double* ave = new double [n_cell];
-	double* ave2 = new double [n_cell];
-	double* sum_prog = new double [n_cell];
-	double* sum2_prog = new double [n_cell];
+	double ave [n_cell];
+	double ave2 [n_cell];
+	double sum_prog [n_cell];
+	double sum2_prog [n_cell];
 
 	for(int i=0; i<n_cell; i++){
 		sum_prog[i] = 0;
@@ -90,11 +88,6 @@ void MC_ErrProg(double* errore, const int n_step, const int n_cell, const double
 	}
 
 	errore[0] = 0;		//con un solo blocco non ho incertezza statistica
-
-	delete[] ave;
-	delete[] ave2;
-	delete[] sum_prog;
-	delete[] sum2_prog;
 }
 
 double Chi2(const double* obs, const double* exp, const int dim){
@@ -106,12 +99,3 @@ double Chi2(const double* obs, const double* exp, const int dim){
 
 	return Chi2;
 }
-
-
-
-
-
-
-
-
-
