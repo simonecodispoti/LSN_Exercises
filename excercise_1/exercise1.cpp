@@ -4,7 +4,7 @@ using namespace std;
 
 int main(){
 
-	//---|stima del valor medio e della varianza per una distribuzione uniforme|---//
+	//  ||---|stima del valor medio e della varianza per una distribuzione uniforme|---||  //
 
 	int n_step = 10000;		//numero di step Monte Carlo
 	int n_cell = 100;		//numero di blocchi
@@ -77,7 +77,7 @@ int main(){
 	delete[] err2_prog;
 
 
-	//---|test del Chi2|---//
+	//  ||---|test del Chi2|---||  //
 
 	//continuo ad usare n_step = 10000 e n_cell = 100; poichè il calcolo va effettuato 100 volte ho bisogno di n_step*n_cell numeri random
 
@@ -117,7 +117,7 @@ int main(){
 	delete[] chi2;
 
 
-	//---|Simulazione di un dado standard, esponenziale e lorentziano|---//
+	//  ||---|Simulazione di un dado standard, esponenziale e lorentziano|---||  //
 
 	//Prima simulazione: getto il dado N=10000 volte
 
@@ -244,7 +244,7 @@ int main(){
 	delete[] L4;
 
 
-	//---|Simulazione dell'esperimento di Buffon|---//
+	//  ||---|Simulazione dell'esperimento di Buffon|---||  //
 
 	//supponiamo di lanciare l'ago n_step = 1000 volte e ripetiamo l'esperimento n_cell = 100 volte ---> effettuo in totale n_step*n_cell = 100000 lanci 
 
@@ -258,10 +258,12 @@ int main(){
 	
 	int n_hit = 0;
 
+	//sqrt(pow(l,2)/4 - pow(rnd.Rannyu(0,l/2),2))) non funziona?
+
 	for(int i=0; i<n_cell; i++){
 		n_hit = 0;
 		for(int j=0; j<n_step; j++){
-			if (rnd.Rannyu(0,d/2) < l/2*sin(rnd.Rannyu(0,M_PI/2)))
+			if (rnd.Rannyu(0,d/2) <= l/2*sin(rnd.Rannyu(0,0.5*M_PI)))
 				n_hit++;
 		}
 	Pi[i] = (2*l*n_step)/(d*n_hit);
