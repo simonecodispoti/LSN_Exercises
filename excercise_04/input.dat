@@ -1,0 +1,23 @@
+0
+1
+0.8
+108
+1.1
+2.2
+0.0005
+10000
+100
+10
+1000
+
+  ReadInput >> should_equi;
+  ReadInput >> should_old;
+  ReadInput >> temp;
+  ReadInput >> npart;
+  ReadInput >> rho;
+  ReadInput >> rcut;
+  ReadInput >> delta;
+  ReadInput >> nstep;
+  ReadInput >> ncell;
+  ReadInput >> imeasure;
+  ReadInput >> iprint;
