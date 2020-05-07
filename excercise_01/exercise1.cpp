@@ -4,10 +4,10 @@ using namespace std;
 
 int main(){
 
-	//  ||---|stima del valor medio e della varianza per una distribuzione uniforme|---||  //
+	//  || --- | stima del valor medio e della varianza per una distribuzione uniforme | --- ||  //
 
-	int n_step = 10000;		//numero di step Monte Carlo
-	int n_cell = 100;		//numero di blocchi
+	int n_step = 10000;		// numero di step Monte Carlo
+	int n_cell = 100;		// numero di blocchi
 
 	//******************************RANDOM_GEN******************************//
 	
@@ -34,217 +34,192 @@ int main(){
 	input.close();
 	} else cerr << "PROBLEM: Unable to open seed.in" << endl;
 
-	double* R = new double [n_step];
+	vector <double> R;
 
-	for(int i=0; i<n_step; i++)		//array con numeri casuali distribuiti unif in [0,1)
-		R[i] = rnd.Rannyu();
+	for(int i=0; i<n_step; i++)		// array con numeri casuali distribuiti unif in [0,1)
+		R.push_back(rnd.Rannyu());
 
 	//******************************RANDOM_GEN******************************//
 
-	//---Media---//
+	// --- Media --- //
 
-	double* mean_prog = new double [n_cell];
-	MC_MeanProg(mean_prog, n_step, n_cell, R);
-	Stampa("Mean.txt", mean_prog, n_cell);			//output: andamento del valor medio
-	
-	double* err1_prog = new double [n_cell];
-	MC_ErrProg(err1_prog, n_step, n_cell, R);
-	Stampa("Mean_error.txt", err1_prog, n_cell);		//output: andamento dell'incertezza sulla media
+	vector <double> mean_prog;
+	vector <double> err1_prog;
 
-	delete[] mean_prog;
-	delete[] err1_prog;
+	MC_Mean_Error(R, mean_prog, err1_prog, n_step, n_cell);
 
-	//---Varianza---//
+	Print("Mean.txt", mean_prog);			// output: andamento del valor medio
+	Print("Mean_error.txt", err1_prog);		// output: andamento dell'incertezza sulla media
 
-	double* V = new double [n_step];
+	// --- Varianza --- //
 
-	for(int i=0; i<n_step; i++)				//la varaianza è la media del quadrato della distanza dall valor medio
-		V[i] = pow(R[i]-0.5,2);
+	vector <double> V;
 
-	double* var_prog = new double [n_cell];
-	MC_MeanProg(var_prog, n_step, n_cell, V);
-	Stampa("Var.txt", var_prog, n_cell);			//output: andamento della varianza
+	for(int i=0; i<n_step; i++)				// la varaianza è la media del quadrato della distanza dal valor medio
+		V.push_back(pow(R[i]-0.5,2));
 
-	double* err2_prog = new double [n_cell];
-	MC_ErrProg(err2_prog, n_step, n_cell, V);
-	Stampa("Var_error.txt", err2_prog, n_cell);		//output: andamento dell'incertezza sulla varianza
+	vector <double> var_prog;
+	vector <double> err2_prog;
 
-	delete[] R;
-	delete[] V;
-	delete[] var_prog;
-	delete[] err2_prog;
+	MC_Mean_Error(V, var_prog, err2_prog, n_step, n_cell);
+
+	Print("Var.txt", var_prog);				// output: andamento della varianza
+	Print("Var_error.txt", err2_prog);		// output: andamento dell'incertezza sulla varianza
 
 
-	//  ||---|test del Chi2|---||  //
+	//  || --- | test del Chi2 | --- ||  //
 
-	//continuo ad usare n_step = 10000 e n_cell = 100; poichè il calcolo va effettuato 100 volte ho bisogno di n_step*n_cell numeri random
+	// continuo ad usare n_step = 10000 e n_cell = 100; poichè il calcolo va effettuato 100 volte ho bisogno di n_step*n_cell numeri random
 
 	int M = n_step*n_cell;
-	int P_unif = n_step/n_cell;	//probabilità a priori che in n_step estrazioni un numero estratto si trovi in uno dei sottointervalli
+	int P_unif = n_step/n_cell;		// probabilità a priori che in n_step estrazioni un numero estratto si trovi in uno dei sottointervalli
 	
-	double* R2 = new double [M];
+	vector <double> R2;
 
 	for(int i=0; i<M; i++)
-		R2[i] = rnd.Rannyu();	
+		R2.push_back(rnd.Rannyu());	
 
-	double* atteso = new double [n_cell];
-	double* osservato = new double [n_cell];
-	double* chi2 = new double [n_cell];
+	vector <double> atteso;
+	vector <double> osservato(n_cell);
+	vector <double> chi2(n_cell);
 
 	for(int i=0; i<n_cell; i++)
-		atteso[i] = P_unif;
+		atteso.push_back(P_unif);
 	
-	for(int i=0; i<n_cell; i++){			//ciclo sul numero di simulazioni (n_cell)
-		for(int l=0; l<n_cell; l++)		
+	for(int i=0; i<n_cell; i++){			// ciclo sul numero di simulazioni (n_cell)
+		for(int l=0; l<n_cell; l++)			// ciclo di azzeramento 
 			osservato[l] = 0;		
-		for(int j=0; j<n_step; j++){		//ciclo interno ad ogni simulazione (n_step)
+		for(int j=0; j<n_step; j++){		// ciclo interno ad ogni simulazione (n_step)
 			int pos = j+i*n_step;
-			for(int k=0; k<n_cell; k++){	//ciclo per valutare i conteggi in ogni "casella" che equipartiziona l'intervallo [0,1]
+			for(int k=0; k<n_cell; k++){	// ciclo per valutare i conteggi in ogni "casella" che equipartiziona l'intervallo [0,1]
 				if(R2[pos] > double(k)/n_cell && R2[pos] < double(k+1)/n_cell)
 					osservato[k] += 1;
 			}
 		}
-		chi2[i] = Chi2(osservato, atteso, n_cell);
+		chi2[i] = Chi2(osservato, atteso);
 	}
 
-	Stampa("Chi2.txt", chi2, n_cell);
-	
-	delete[] R2;
-	delete[] atteso;
-	delete[] osservato; 
-	delete[] chi2;
+	Print("Chi2.txt", chi2);
 
 
-	//  ||---|Simulazione di un dado standard, esponenziale e lorentziano|---||  //
+	//  || --- | Simulazione di un dado standard, esponenziale e lorentziano | --- ||  //
 
-	//Prima simulazione: getto il dado N=10000 volte
+	// --- Prima simulazione: getto il dado N=10000 volte --- //
 
 	int N = 10000;
 
-	double* G1 = new double [N];
+	vector <double> G1;
 	for(int i=0; i<N; i++)
-		G1[i] = rnd.Gauss(0,1);
+		G1.push_back(rnd.Gauss(0,1));
 	
-	Stampa("Gauss_1.txt", G1, N);
-	delete[] G1;
+	Print("Gauss_1.txt", G1);
 	
-	double* E1 = new double [N];
+	vector <double> E1;
 	for(int i=0; i<N; i++)
-		E1[i] = rnd.Exp(1);
+		E1.push_back(rnd.Exp(1));
 
-	Stampa("Exp_1.txt", E1, N);
-	delete[] E1;
+	Print("Exp_1.txt", E1);
 
-	double* L1 = new double [N];
+	vector <double> L1;
 	for(int i=0; i<N; i++)
-		L1[i] = rnd.Lorentz(0,1);
+		L1.push_back(rnd.Lorentz(0,1));
 
-	Stampa("Lorentz_1.txt", L1, N);
-	delete[] L1;
+	Print("Lorentz_1.txt", L1);
 
-	//Seconda simulazione: getto il dado N=2*10000=20000 volte e studio la variabile aleatoria x1 + x2
+	// --- Seconda simulazione: getto il dado N=2*10000=20000 volte e studio la variabile aleatoria x1 + x2 --- //
 
-	double* G2 = new double [N];
+	vector <double> G2;
 	for(int i=0; i<N; i++)
-		G2[i] = (rnd.Gauss(0,1) + rnd.Gauss(0,1))/2;
+		G2.push_back((rnd.Gauss(0,1) + rnd.Gauss(0,1))/2);
 	
-	Stampa("Gauss_2.txt", G2, N);
-	delete[] G2;
+	Print("Gauss_2.txt", G2);
 	
-	double* E2 = new double [N];
+	vector <double> E2;
 	for(int i=0; i<N; i++)
-		E2[i] = (rnd.Exp(1) + rnd.Exp(1))/2;
+		E2.push_back((rnd.Exp(1) + rnd.Exp(1))/2);
 
-	Stampa("Exp_2.txt", E2, N);
-	delete[] E2;
+	Print("Exp_2.txt", E2);
 
-	double* L2 = new double [N];
+	vector <double> L2;
 	for(int i=0; i<N; i++)
-		L2[i] = (rnd.Lorentz(0,1) + rnd.Lorentz(0,1))/2;
+		L2.push_back((rnd.Lorentz(0,1) + rnd.Lorentz(0,1))/2);
 
-	Stampa("Lorentz_2.txt", L2, N);
-	delete[] L2;
+	Print("Lorentz_2.txt", L2);
 
-	//Terza simulazione: getto il dado N=10*10000=10^5 volte e studio la variabile aleatoria x1 + x2 + ... + x10
+	// --- Terza simulazione: getto il dado N=10*10000=10^5 volte e studio la variabile aleatoria x1 + x2 + ... + x10 --- //
 
-	double* G3 = new double [N];
+	vector <double> G3;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<10; j++)
 			sum += rnd.Gauss(0,1);
 		sum/=10;
-		G3[i] = sum;
+		G3.push_back(sum);
 	}
 
-	Stampa("Gauss_3.txt", G3, N);
-	delete[] G3;
+	Print("Gauss_3.txt", G3);
 	
-	double* E3 = new double [N];
+	vector <double> E3;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<10; j++)
 			sum += rnd.Exp(1);
 		sum/=10;
-		E3[i] = sum;
+		E3.push_back(sum);
 	}
 
-	Stampa("Exp_3.txt", E3, N);
-	delete[] E3;
+	Print("Exp_3.txt", E3);
 
-	double* L3 = new double [N];
+	vector <double> L3;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<10; j++)
 			sum += rnd.Lorentz(0,1);
 		sum/=10;
-		L3[i] = sum;
+		L3.push_back(sum);
 	}
 
-	Stampa("Lorentz_3.txt", L3, N);
-	delete[] L3;
+	Print("Lorentz_3.txt", L3);
 
-	//Quarta simulazione: getto il dado N=100*10000=10^6 volte e studio la variabile aleatoria x1 + x2 + ... +x100
+	// --- Quarta simulazione: getto il dado N=100*10000=10^6 volte e studio la variabile aleatoria x1 + x2 + ... +x100 --- //
 
-	double* G4 = new double [N];
+	vector <double> G4;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<100; j++)
 			sum += rnd.Gauss(0,1);
 		sum/=100;
-		G4[i] = sum;
+		G4.push_back(sum);
 	}
 
-	Stampa("Gauss_4.txt", G4, N);
-	delete[] G4;
+	Print("Gauss_4.txt", G4);
 
-	double* E4 = new double [N];
+	vector <double> E4;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<100; j++)
 			sum += rnd.Exp(1);
 		sum/=100;
-		E4[i] = sum;
+		E4.push_back(sum);
 	}
 
-	Stampa("Exp_4.txt", E4, N);
-	delete[] E4;
+	Print("Exp_4.txt", E4);
 
-	double* L4 = new double [N];
+	vector <double> L4;
 	for(int i=0; i<N; i++){
 		double sum = 0;
 		for(int j=0; j<100; j++)
 			sum += rnd.Lorentz(0,1);
 		sum/=100;
-		L4[i] = sum;
+		L4.push_back(sum);
 	}
 
-	Stampa("Lorentz_4.txt", L4, N);
-	delete[] L4;
+	Print("Lorentz_4.txt", L4);
 
 
-	//  ||---|Simulazione dell'esperimento di Buffon|---||  //
+	//  || --- | Simulazione dell'esperimento di Buffon | --- ||  //
 
-	//supponiamo di lanciare l'ago n_step = 1000 volte e ripetiamo l'esperimento n_cell = 100 volte ---> effettuo in totale n_step*n_cell = 100000 lanci 
+	// supponiamo di lanciare l'ago n_step = 1000 volte e ripetiamo l'esperimento n_cell = 100 volte ---> effettuo in totale n_step*n_cell = 100000 lanci 
 
 	n_step = 1000;
 	n_cell = 100;
@@ -252,34 +227,28 @@ int main(){
 	double l = 4.5;		//lunghezza dell'ago in cm
 	double d = 7.0;		//distanza tra gli assi del parquet in cm :)
 
-	double* Pi = new double [n_cell];
+	vector <double> Pi;
 	
 	int n_hit = 0;
 
-	//sqrt(pow(l,2)/4 - pow(rnd.Rannyu(0,l/2),2))) non funziona?
+	// sqrt(pow(l,2)/4 - pow(rnd.Rannyu(0,l/2),2))) non funziona!?
 
 	for(int i=0; i<n_cell; i++){
 		n_hit = 0;
-		for(int j=0; j<n_step; j++){
-			if (rnd.Rannyu(0,d/2) <= l/2*sin(rnd.Rannyu(0,0.5*M_PI)))
-				n_hit++;
-		}
-	Pi[i] = (2*l*n_step)/(d*n_hit);
+		for(int j=0; j<n_step; j++)
+			if (rnd.Rannyu(0,d/2) <= l/2*sin(rnd.Rannyu(0,0.5*M_PI))) n_hit ++;
+	Pi.push_back((2*l*n_step)/(d*n_hit));
 	}
 
-	double* media = new double [n_cell];
-	MC_MeanProg(media, n_cell, n_cell, Pi);
-	Stampa("Pi.txt", media, n_cell);
+	vector <double> media;
+	vector <double> errore;
 
-	double* errore = new double [n_cell];
-	MC_ErrProg(errore, n_cell, n_cell, Pi);
-	Stampa("Pi_error.txt", errore, n_cell);
+	MC_Mean_Error(Pi, media, errore, n_cell, n_cell);
 
-	delete[] Pi;
-	delete[] media;
-	delete[] errore;
+	Print("Pi.txt", media);
+	Print("Pi_error.txt", errore);
 
-	rnd.SaveSeed();		//Salvataggio del seme per riproducibilità
+	rnd.SaveSeed();		// salvataggio del seme per riproducibilità
 
 	return 0;
 }

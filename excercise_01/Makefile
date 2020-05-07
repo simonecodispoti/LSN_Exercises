@@ -1,11 +1,8 @@
 CC = g++
 CFLAGS = -Wall -O3 --std=c++11
 
-exercise1.exe : exercise1.o random.o utilities.o
-	$(CC) exercise1.o random.o utilities.o -o exercise1.exe
-
-utilities.o : utilities.cpp utilities.h
-	$(CC) -c utilities.cpp -o utilities.o $(CFLAGS)
+exercise1.exe : exercise1.o random.o utilities.h
+	$(CC) exercise1.o random.o -o exercise1.exe
 
 random.o : random.cpp random.h
 	$(CC) -c random.cpp -o random.o $(CFLAGS)
