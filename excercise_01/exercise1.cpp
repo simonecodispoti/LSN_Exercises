@@ -55,7 +55,7 @@ int main(){
 
 	vector <double> V;
 
-	for(int i=0; i<n_step; i++)				// la varaianza è la media del quadrato della distanza dal valor medio
+	for(int i=0; i<n_step; i++)				// la varianza è la media del quadrato della distanza dal valor medio
 		V.push_back(pow(R[i]-0.5,2));
 
 	vector <double> var_prog;
@@ -230,8 +230,6 @@ int main(){
 	vector <double> Pi;
 	
 	int n_hit = 0;
-
-	// sqrt(pow(l,2)/4 - pow(rnd.Rannyu(0,l/2),2))) non funziona!?
 
 	for(int i=0; i<n_cell; i++){
 		n_hit = 0;

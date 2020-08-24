@@ -1,5 +1,6 @@
 #ifndef POSIZIONE_H
 #define POSIZIONE_H
+#include <cmath>
 using namespace std;
 
 class Posizione{
@@ -7,25 +8,29 @@ class Posizione{
 	public:
 
 		Posizione();
+		Posizione(double x, double y);
 		Posizione(double x, double y, double z);
 		~Posizione() {};
 		
-		double GetX() const;
-		void SetX(double x) {m_x = x;};
+		double Get_X() const;
+		void Set_X(double x) {m_x = x;};
 
-		double GetY() const;
-		void SetY(double y) {m_y = y;};
+		double Get_Y() const;
+		void Set_Y(double y) {m_y = y;};
 
-		double GetZ() const;
-		void SetZ(double z) {m_z = z;};
+		double Get_Z() const;
+		void Set_Z(double z) {m_z = z;};
 
-		double GetR() const;
-		double GetPhi() const;
-		double GetTheta() const;
-		double GetRho() const;
+		double Get_R() const;
+		double Get_Phi() const;
+		double Get_Theta() const;
+		double Get_Rho() const;
 
-		double Distanza(const Posizione&) const;
-		double Distanza_quad(const Posizione&) const;
+		double Norm_R2(const Posizione&) const;
+		double Norm_Quad_R2(const Posizione&) const;
+
+		double Norm_R3(const Posizione&) const;
+		double Norm_Quad_R3(const Posizione&) const;
 
 	protected:
 

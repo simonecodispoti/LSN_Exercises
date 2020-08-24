@@ -6,3 +6,6 @@ MolDyn_NVE.exe : MolDyn_NVE.o
 
 MolDyn_NVE.o : MolDyn_NVE.cpp MolDyn_NVE.h
 	$(CC) -c MolDyn_NVE.cpp -o MolDyn_NVE.o $(CFLAGS)
+
+clean: 
+	rm *.o MolDyn_NVE.exe

@@ -10,4 +10,4 @@ Monte_Carlo_ISING_1D.o : Monte_Carlo_ISING_1D.cpp
 random.o : random.cpp random.h
 	$(CC) -c random.cpp -o random.o $(CFLAGS)
 clean :
-	rm *.o Monte_Carlo_ISING_1D.exe
+	rm *.o Monte_Carlo_ISING_1D.exe seed.out

@@ -7,65 +7,55 @@
 _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 *****************************************************************
 *****************************************************************/
-#include <stdlib.h>	//srand, rand: to generate random number
-#include <iostream>
-#include <fstream>
-#include <cmath>
+#include <stdlib.h>     // srand, rand: to generate random number
+#include <iostream>     // cin, cout: Standard Input/Output Streams Library
+#include <fstream>      // Stream class to both read and write from/to files.
+#include <cmath>        // rint, pow
+#include <iomanip>
 #include "MolDyn_NVE.h"
 
 using namespace std;
 
-int main(){
-
-  Input();										//Inizialization
+int main(){ 
+  Input();            //Inizialization
   int nconf = 1;
-  for(int istep=1; istep <= nstep; ++istep){
-     Move();										//Move particles with Verlet algorithm
-     if(istep%iprint == 0) cout << "Number of time-steps: " << istep << endl;
-     if(istep%imeasure == 0){
-        Measure();									//Properties measurement
-        //ConfXYZ(nconf);								//Write actual configuration in XYZ format - Commented to avoid "filesystem full"! 
+  for(int iblock=1; iblock <= nblock; ++iblock){
+    Reset(iblock);    //Reset block computations
+    for(int istep=1; istep <= nstep; ++istep){
+      Move();                  //Move particles with Verlet algorithm
+      if(istep%10 == 0){
+        Measure();              //Properties measurement
+        Accumulate();           //Update block computations
+        //ConfXYZ(nconf);       //Write actual configuration in XYZ format //Commented to avoid "filesystem full"! 
         nconf += 1;
-     }
+      }
+    }
+    Averages(iblock);   //Output for current block
   }
-  cout << endl;
-  Average();										//compute average values and errors using blocking method
-  ConfFinal();										//Write final configuration to restart
-  ConfPreFinal();									//Write olso the old configuration (possibility to rester a simulation)
+  ConfFinal();          //Write final configuration to restart ---> config.final
+  ConfOld();            //Write the previous time step configuration ---> config.old
 
   return 0;
 }
 
 
-void Input(void){									//Prepare all stuff for the simulation
+void Input(void){                   //Prepare all stuff for the simulation
 
   ifstream ReadInput, ReadConf;
-  double ep, ek, pr, et, vir;
 
   cout << "Classic Lennard-Jones fluid        " << endl;
   cout << "Molecular dynamics simulation in NVE ensemble  " << endl << endl;
-  cout << "Interatomic potential: v(r) = 4 * [(1/r)^12 - (1/r)^6]" << endl << endl;
-  cout << "The program uses Lennard-Jones units " << endl << endl;
+  cout << "Interatomic potential v(r) = 4 * [(1/r)^12 - (1/r)^6]" << endl << endl;
+  cout << "The program uses Lennard-Jones units " << endl;
 
-  seed = 1;		//Set seed for random numbers
-  srand(seed);		//Initialize random number generator
-
-  //------------------------------------------------------------------------------------//
+  seed = 1;    //Set seed for random numbers
+  srand(seed); //Initialize random number generator
   
   ReadInput.open("input.dat");
 
-  ReadInput >> should_old;
-  if(should_old==true)
-    cout<< "Starting from an old configuration config.old " << endl << endl;
-
-  ReadInput >> should_equi;
-  if(should_equi==true)
-    cout<< "Equilibration of the ensemble option enabled " << endl << endl;
-
-  cout << "Ensemble properties: " << endl << endl;
+  ReadInput >> old;
 
   ReadInput >> temp;
-  cout << "Temperature of the ensemble = " << temp << endl;
 
   ReadInput >> npart;
   cout << "Number of particles = " << npart << endl;
@@ -75,36 +65,39 @@ void Input(void){									//Prepare all stuff for the simulation
   vol = (double)npart/rho;
   cout << "Volume of the simulation box = " << vol << endl;
   box = pow(vol,1.0/3.0);
-  cout << "Edge of the simulation box = " << box << endl << endl;
+  cout << "Edge of the simulation box = " << box << endl;
 
   ReadInput >> rcut;
   ReadInput >> delta;
   ReadInput >> nstep;
-  ReadInput >> ncell;
-  ReadInput >> imeasure;
-  ReadInput >> iprint;
+  ReadInput >> nblock;
 
-  cout << "The program integrates Newton equations using Verlet algorithm " << endl;
-  cout << "Time step = " << delta << endl;
-  cout << "Number of steps = " << nstep << endl;
-  cout << "Number of blocks = " << ncell << endl;
-  cout << "Measurement frequency = " << imeasure << endl << endl;
+  cout << "The program integrates Newton equations with the Verlet method " << endl;
+  cout << "Time step = " << delta << endl << endl;
+  cout << "The program uses data-blocking method to estimate averages and uncertainties " << endl;
+  cout << "Numer of blocks = " << nblock << endl;
+  cout << "Number of steps in each block = " << nstep << endl << endl;
 
   ReadInput.close();
 
-  //------------------------------------------------------------------------------------//
+//Prepare arrays for measurements
+  n_props = 4;  // Number of observables
+  it = 0;       // Temperature
+  iv = 1;       // Potential energy
+  ik = 2;       // Kinetic energy
+  ie = 3;       // Total energy
 
-  //Prepare array for measurements
+//measurement of g(r)
+  igofr = 4;
+  nbins = 100;
+  n_props = n_props + nbins;
+  bin_size = (box/2.0)/(double)nbins;
 
-  iv = 0;	//Potential energy
-  ik = 1;	//Kinetic energy
-  ie = 2;	//Total energy
-  it = 3;	//Temperature
-  n_props = 4;	//Number of observables
 
-  //Read initial configuration
+if(old==0){
 
-  cout << "Reading initial configuration from file config.0 " << endl << endl;
+//Read initial configuration
+  cout << "Read initial configuration from file config.0 " << endl << endl;
   ReadConf.open("config.0");
   for (int i=0; i<npart; ++i){
     ReadConf >> x[i] >> y[i] >> z[i];
@@ -114,121 +107,106 @@ void Input(void){									//Prepare all stuff for the simulation
   }
   ReadConf.close();
 
-   //Prepare initial velocities
+//Prepare initial velocities
+   cout << "Prepare random velocities with center of mass velocity equal to zero " << endl << endl;
+   double sumv[3] = {0.0, 0.0, 0.0};
+   for (int i=0; i<npart; ++i){
+     vx[i] = rand()/double(RAND_MAX) - 0.5;
+     vy[i] = rand()/double(RAND_MAX) - 0.5;
+     vz[i] = rand()/double(RAND_MAX) - 0.5;
 
-   //case 1: no old configurations
-
-   if(should_old==false){
-
-     cout << "Prepare random velocities with center of mass velocity equal to zero " << endl << endl;
-     double sumv[3] = {0.0, 0.0, 0.0};
-     for (int i=0; i<npart; ++i){
-       vx[i] = rand()/double(RAND_MAX) - 0.5;
-       vy[i] = rand()/double(RAND_MAX) - 0.5;
-       vz[i] = rand()/double(RAND_MAX) - 0.5;
-
-       sumv[0] += vx[i];
-       sumv[1] += vy[i];
-       sumv[2] += vz[i];
-     }
-
-     for (int idim=0; idim<3; ++idim) sumv[idim] /= (double)npart;	//center mass veolocity for identical particles
-     double sumv2 = 0.0, fs;
-     for (int i=0; i<npart; ++i){
-       vx[i] = vx[i] - sumv[0];						//subtracting center of mass velocity components
-       vy[i] = vy[i] - sumv[1];
-       vz[i] = vz[i] - sumv[2];
-
-       sumv2 += vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i];			
-     }
-     sumv2 /= (double)npart;
-
-     fs = sqrt(3 * temp / sumv2);		// fs = velocity scale factor 
-     for (int i=0; i<npart; ++i){
-       vx[i] *= fs;
-       vy[i] *= fs;
-       vz[i] *= fs;
-
-       xold[i] = Pbc(x[i] - vx[i] * delta);
-       yold[i] = Pbc(y[i] - vy[i] * delta);
-       zold[i] = Pbc(z[i] - vz[i] * delta);
-     }
-
+     sumv[0] += vx[i];
+     sumv[1] += vy[i];
+     sumv[2] += vz[i];
    }
+   for (int idim=0; idim<3; ++idim) sumv[idim] /= (double)npart;	//velocità del cm con massa = 1
+   double sumv2 = 0.0, fs;
+   for (int i=0; i<npart; ++i){
+     vx[i] = vx[i] - sumv[0];
+     vy[i] = vy[i] - sumv[1];
+     vz[i] = vz[i] - sumv[2];
 
-   //case 2: using an old configuration
-
-   if(should_old==true){
-
-     cout << "Reading old configuration from file config.old " << endl << endl;
-     ReadConf.open("config.old");
-     for (int i=0; i<npart; ++i){
-       ReadConf >> xold[i] >> yold[i] >> zold[i];
-       xold[i] = xold[i] * box;
-       yold[i] = yold[i] * box;
-       zold[i] = zold[i] * box;
-     }
-
+     sumv2 += vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i];
    }
+   sumv2 /= (double)npart;	//velocità senza cm
 
-   if(should_equi==true)
-     Equilibrate();		//Equilibration before starting the true simulation
+   fs = sqrt(3 * temp / sumv2);   // fs = velocity scale factor 
+   for (int i=0; i<npart; ++i){
+     vx[i] *= fs;		              //sto moltiplicando tutte le velocità per il fattore di scala: rad(3*T)
+     vy[i] *= fs;
+     vz[i] *= fs;
 
-   return;
-}
-
-void Equilibrate(void){
-
-   /*cout << "Equilibration algorithm starting " << endl;
-   double prec = 0;
-   cout << "Choose a precision to fix thermodynamic phases (note that a too high precision can cause an infinite loop!): " << endl;
-   cin >> prec;*/
-
-   double vx_mid[m_part], vy_mid[m_part], vz_mid[m_part];
-   double Kin_mid = 0.;
-   double T_mid = 0.;
-   double scale;
-
-   Move();
-
-   for (int i=0; i<npart; i++){
-     vx_mid[i] = Pbc(x[i] - xold[i])/delta;
-     vy_mid[i] = Pbc(y[i] - yold[i])/delta;
-     vz_mid[i] = Pbc(z[i] - zold[i])/delta;
-   }
-  
-   for (int i=0; i<npart; ++i)
-     Kin_mid += 0.5 * (vx_mid[i]*vx_mid[i] + vy_mid[i]*vy_mid[i] + vz_mid[i]*vz_mid[i]);
-
-   Kin_mid/=(double)npart;
-   T_mid = (2.0 / 3.0) * Kin_mid;
-
-   scale = sqrt(temp/T_mid);
-
-   for (int i=0; i<npart; i++){
-     vx[i] *= scale;
-     vy[i] *= scale;
-     vz[i] *= scale;
-
-     xold[i] = Pbc(x[i] - vx[i] * delta);
+     xold[i] = Pbc(x[i] - vx[i] * delta);     //posizione al tempo t - dt
      yold[i] = Pbc(y[i] - vy[i] * delta);
      zold[i] = Pbc(z[i] - vz[i] * delta);
    }
+}
+
+if(old==1){
+
+  //Read old configuration
+  cout << "Read old configuration from file config.final " << endl << endl;
+  ReadConf.open("config.final");
+  for (int i=0; i<npart; ++i){
+    ReadConf >> x[i] >> y[i] >> z[i];
+    x[i] = x[i] * box;
+    y[i] = y[i] * box;
+    z[i] = z[i] * box;
+  }
+  ReadConf.close();
+
+  //Read previous configuration
+  cout << "Read previous configuration from file config.old " << endl << endl;
+  ReadConf.open("config.old");
+  for (int i=0; i<npart; ++i){
+    ReadConf >> xold[i] >> yold[i] >> zold[i];
+    xold[i] = xold[i] * box;
+    yold[i] = yold[i] * box;
+    zold[i] = zold[i] * box;
+  }
+  ReadConf.close();
+
+  //Rescaling algorithm
+
+  double vx_m[m_part], vy_m[m_part], vz_m[m_part];
+  double sumv2=0;
+  Move();     // ---> next configuration and velocities
+
+  for(int i=0; i<npart; i++){               //average velocity estimation
+    vx_m[i] = Pbc(x[i] - xold[i])/delta;
+    vy_m[i] = Pbc(y[i] - yold[i])/delta;
+    vz_m[i] = Pbc(z[i] - zold[i])/delta;
+  }
+
+  for (int i=0; i<npart; ++i)              //actual kinetic energy
+    sumv2 += (vx_m[i]*vx_m[i] + vy_m[i]*vy_m[i] + vz_m[i]*vz_m[i]);
+
+  double fs = sqrt((3*npart*temp)/sumv2);       //veolcity scale factor
+  for (int i=0; i<npart; ++i){
+    vx[i] *= fs;
+    vy[i] *= fs;
+    vz[i] *= fs;
+
+    xold[i] = Pbc(x[i] - vx[i] * delta);	//posizione al tempo t - dt
+    yold[i] = Pbc(y[i] - vy[i] * delta);
+    zold[i] = Pbc(z[i] - vz[i] * delta);
+  }
+}
 
   return;
 }
 
-void Move(void){ 							//Move particles with Verlet algorithm
 
+void Move(void){ //Move particles with Verlet algorithm
   double xnew, ynew, znew, fx[m_part], fy[m_part], fz[m_part];
 
-  for(int i=0; i<npart; ++i){ 						//Force acting on particle i
+  for(int i=0; i<npart; ++i){ //Force acting on particle i
     fx[i] = Force(i,0);
     fy[i] = Force(i,1);
     fz[i] = Force(i,2);
   }
 
-  for(int i=0; i<npart; ++i){ 						//Verlet integration scheme
+  for(int i=0; i<npart; ++i){ //Verlet integration scheme
 
     xnew = Pbc( 2.0 * x[i] - xold[i] + fx[i] * pow(delta,2) );
     ynew = Pbc( 2.0 * y[i] - yold[i] + fy[i] * pow(delta,2) );
@@ -249,14 +227,14 @@ void Move(void){ 							//Move particles with Verlet algorithm
   return;
 }
 
-double Force(int ip, int idir){						//Compute forces as -Grad_ip V(r)
 
+double Force(int ip, int idir){ //Compute forces as -Grad_ip V(r)
   double f=0.0;
   double dvec[3], dr;
 
   for (int i=0; i<npart; ++i){
     if(i != ip){
-      dvec[0] = Pbc( x[ip] - x[i] );					// distance ip-i in pbc
+      dvec[0] = Pbc( x[ip] - x[i] );  // distance ip-i in pbc
       dvec[1] = Pbc( y[ip] - y[i] );
       dvec[2] = Pbc( z[ip] - z[i] );
 
@@ -264,7 +242,7 @@ double Force(int ip, int idir){						//Compute forces as -Grad_ip V(r)
       dr = sqrt(dr);
 
       if(dr < rcut){
-        f += dvec[idir] * (48.0/pow(dr,14) - 24.0/pow(dr,8));		// -Grad_ip V(r)
+        f += dvec[idir] * (48.0/pow(dr,14) - 24.0/pow(dr,8)); // -Grad_ip V(r)
       }
     }
   }
@@ -272,9 +250,9 @@ double Force(int ip, int idir){						//Compute forces as -Grad_ip V(r)
   return f;
 }
 
-void Measure(){					//Properties measurement
 
-  int bin;
+void Measure(){ //Properties measurement
+  double bin;
   double v, t, vij;
   double dx, dy, dz, dr;
   ofstream Epot, Ekin, Etot, Temp;
@@ -284,40 +262,52 @@ void Measure(){					//Properties measurement
   Temp.open("output_temp.dat",ios::app);
   Etot.open("output_etot.dat",ios::app);
 
-  v = 0.0;	//reset observables
+  v = 0.0;    //reset observables
   t = 0.0;
+  for (int k=igofr; k<igofr+nbins; ++k) walker[k]=0.0;    //reset the hystogram of g(r)
 
-  //cycle over pairs of particles
-
+//cycle over pairs of particles
   for (int i=0; i<npart-1; ++i){
     for (int j=i+1; j<npart; ++j){
 
-     dx = Pbc( x[i] - x[j] );
-     dy = Pbc( y[i] - y[j] );
-     dz = Pbc( z[i] - z[j] );
+      dx = Pbc( x[i] - x[j] );
+      dy = Pbc( y[i] - y[j] );
+      dz = Pbc( z[i] - z[j] );
 
-     dr = dx*dx + dy*dy + dz*dz;
-     dr = sqrt(dr);
+      dr = dx*dx + dy*dy + dz*dz;
+      dr = sqrt(dr);
+
+//update of the histogram of g(r)
+      for(int i=0; i<nbins; i++){
+        bin = i*bin_size;
+        if(dr >= bin and dr < (bin + bin_size)){
+          walker[igofr + i] += 2;
+          break;
+        }
+      }
 
      if(dr < rcut){
+      //Potential energy
        vij = 4.0/pow(dr,12) - 4.0/pow(dr,6);
-
-  //Potential energy
        v += vij;
      }
     }          
   }
 
-  //Kinetic energy
-
+//Kinetic energy
   for (int i=0; i<npart; ++i) t += 0.5 * (vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i]);
    
-    stima_pot = v/(double)npart;		//Potential energy per particle
-    stima_kin = t/(double)npart;		//Kinetic energy per particle
-    stima_temp = (2.0 / 3.0) * t/(double)npart; //Temperature
-    stima_etot = (t+v)/(double)npart;		//Total energy per particle
+    stima_pot = v/(double)npart;                 //Potential energy per particle
+    stima_kin = t/(double)npart;                 //Kinetic energy per particle
+    stima_temp = (2.0 / 3.0) * t/(double)npart;  //Temperature
+    stima_etot = (t+v)/(double)npart;            //Total energy per particle
 
-    Epot << stima_pot  << endl;
+    walker[iv] = stima_pot;                      //storage for averages (Data-Blocking)
+    walker[ik] = stima_kin;
+    walker[ie] = stima_etot;
+    walker[it] = stima_temp;
+
+    Epot << stima_pot  << endl;                  //istantaneous outputs
     Ekin << stima_kin  << endl;
     Temp << stima_temp << endl;
     Etot << stima_etot << endl;
@@ -330,143 +320,114 @@ void Measure(){					//Properties measurement
     return;
 }
 
-void Average(void){
 
-  ifstream Epot, Ekin, Etot, Temp;
-  ofstream Epot_ave, Ekin_ave, Etot_ave, Temp_ave, Epot_err, Ekin_err, Etot_err, Temp_err;
-
-  //reading from outputs of Measure()
-
-  Epot.open("output_epot.dat");
-  Ekin.open("output_ekin.dat");
-  Temp.open("output_temp.dat");
-  Etot.open("output_etot.dat");
-
-  int mis = nstep/imeasure;	//number of measurements
- 
-  double* ep = new double [mis];
-  double* et = new double [mis];
-  double* ek = new double [mis]; 
-  double* T = new double [mis];
-
-  for(int i=0; i<mis; i++){
-    Epot >> ep[i];
-    Ekin >> ek[i];
-    Etot >> et[i];
-    Temp >> T[i];
+void Reset(int iblock){
+  if(iblock == 1){
+    for(int i=0; i<n_props; ++i){
+      glob_av[i] = 0;
+      glob_av2[i] = 0;
+    }
   }
 
-  Epot.close();
-  Ekin.close();
-  Etot.close();
-  Temp.close();
+  for(int i=0; i<n_props; ++i)
+    blk_av[i] = 0;
 
-  //using data blocking for each observable
-
-  Epot_ave.open("output_epot_ave.dat");
-  Ekin_ave.open("output_ekin_ave.dat");
-  Temp_ave.open("output_temp_ave.dat");
-  Etot_ave.open("output_etot_ave.dat");
-  Epot_err.open("output_epot_err.dat");
-  Ekin_err.open("output_ekin_err.dat");
-  Temp_err.open("output_temp_err.dat");
-  Etot_err.open("output_etot_err.dat");
-
-  double* ep_ave = new double [ncell];
-  double* et_ave = new double [ncell];
-  double* ek_ave = new double [ncell]; 
-  double* T_ave = new double [ncell];
-  double* ep_err = new double [ncell];
-  double* et_err = new double [ncell];
-  double* ek_err = new double [ncell]; 
-  double* T_err = new double [ncell];
-
-  Eval_ave_err(ep, ep_ave, ep_err, mis, ncell);
-  Eval_ave_err(ek, ek_ave, ek_err, mis, ncell);
-  Eval_ave_err(et, et_ave, et_err, mis, ncell);
-  Eval_ave_err(T, T_ave, T_err, mis, ncell);
-
-  for(int i=0; i<ncell; i++){
-    Epot_ave << ep_ave[i] << endl;
-    Ekin_ave << ek_ave[i] << endl;
-    Etot_ave << et_ave[i] << endl;
-    Temp_ave << T_ave[i] << endl;
-    Epot_err << ep_err[i] << endl;
-    Ekin_err << ek_err[i] << endl;
-    Etot_err << et_err[i] << endl;
-    Temp_err << T_err[i] << endl;
-  }
-
-  Epot_ave.close();
-  Ekin_ave.close();
-  Temp_ave.close();
-  Etot_ave.close();
-  Epot_err.close();
-  Ekin_err.close();
-  Temp_err.close();
-  Etot_err.close();
-
-  delete[] ep;
-  delete[] ek;
-  delete[] et;
-  delete[] T;
-  delete[] ep_ave;
-  delete[] ek_ave;
-  delete[] et_ave;
-  delete[] T_ave;
-  delete[] ep_err;
-  delete[] ek_err;
-  delete[] et_err;
-  delete[] T_err;
-
-  return;
+  blk_norm = 0;
 }
 
-void Eval_ave_err(double* input, double* average, double* error, int n_step, int n_cell){
 
-	int l = n_step/n_cell;
-	
-	double ave [ncell];
-	double ave2 [n_cell];
-	double sum2_prog [n_cell];
+void Accumulate(void){    //Update block averages
+  for(int i=0; i<n_props; ++i)
+    blk_av[i] = blk_av[i] + walker[i];
 
-	for(int i=0; i<n_cell; i++){
-		ave[i] = 0;
-		ave2[i] = 0;
-		sum2_prog[i] = 0;
-		average[i] = 0;
-		error[i] = 0;
-	}
-
-	for(int i=0; i<n_cell; i++){
-		double sum = 0;
-			for(int j=0; j<l; j++){
-				int pos = j+i*l;
-				sum += input[pos];
-			}
-		ave[i] = sum/l;			//averages for each block
-		ave2[i] = pow(ave[i],2);	//squared averages for each block
-	}
-
-	for(int i=0; i<n_cell; i++){
-		for(int j=0; j<i+1; j++){
-			average[i] += ave[j];
-			sum2_prog[i] += ave2[j];
-		}
-	average[i]/=(i+1);
-	sum2_prog[i]/=(i+1);
-
-	if(i!=0)
-		error[i] = sqrt((sum2_prog[i]-pow(average[i],2))/i);		//statistical uncertainty (output)
-	}
-
-	error[0] = 0;		//no statistical uncertainty after one block
-
-  return;
+  blk_norm = blk_norm + 1.0;
 }
 
-void ConfFinal(void){			//Write final configuration
 
+void Averages(int iblk){     //Data-blocking technique: printing results for each block
+    
+   double r, gdir;
+   ofstream Epot, Ekin, Etot, Temp, Gofr, Gave;
+   const int wd=12;
+    
+    cout << "Block number " << iblk << endl;
+    
+    Epot.open("output_epot.ave",ios::app);
+    Ekin.open("output_ekin.ave",ios::app);
+    Etot.open("output_etot.ave",ios::app);
+    Temp.open("output_temp.ave",ios::app);
+    Gofr.open("output.gofr.dat",ios::app);
+    
+    stima_pot = blk_av[iv]/blk_norm;               //Potential energy per particle
+    glob_av[iv] += stima_pot;
+    glob_av2[iv] += stima_pot*stima_pot;
+    err_pot = Error(glob_av[iv],glob_av2[iv],iblk);
+    
+    stima_kin = blk_av[ik]/blk_norm;               //Kinetc energy per particle
+    glob_av[ik] += stima_kin;
+    glob_av2[ik] += stima_kin*stima_kin;
+    err_kin = Error(glob_av[ik],glob_av2[ik],iblk);
+
+    stima_etot = blk_av[ie]/blk_norm;               //Total energy per particle
+    glob_av[ie] += stima_etot;
+    glob_av2[ie] += stima_etot*stima_etot;
+    err_etot = Error(glob_av[ie],glob_av2[ie],iblk);
+
+    stima_temp = blk_av[it]/blk_norm;               //Temperature
+    glob_av[it] += stima_temp;
+    glob_av2[it] += stima_temp*stima_temp;
+    err_temp = Error(glob_av[it],glob_av2[it],iblk);
+
+
+//Potential energy per particle
+    Epot << setw(wd) << iblk <<  setw(wd) << stima_pot << setw(wd) << glob_av[iv]/(double)iblk << setw(wd) << err_pot << endl;
+//Kinetic energy per particle
+    Ekin << setw(wd) << iblk <<  setw(wd) << stima_kin << setw(wd) << glob_av[ik]/(double)iblk << setw(wd) << err_kin << endl;
+//Total energy per particle
+    Etot << setw(wd) << iblk <<  setw(wd) << stima_etot << setw(wd) << glob_av[ie]/(double)iblk << setw(wd) << err_etot << endl;
+//Temperature
+    Temp << setw(wd) << iblk <<  setw(wd) << stima_temp << setw(wd) << glob_av[it]/(double)iblk << setw(wd) << err_temp << endl;
+
+//g(r): evaluation in each block
+
+    Gofr << iblk << endl;
+    for(int k=igofr; k<igofr+nbins; k++){
+      r = (k-igofr)*bin_size;                 // distance (from r=0 to r = (nbins-1)*bin_size = 0.5*L-bin_size)
+      gdir = blk_av[k]/blk_norm;
+      glob_av[k] += gdir;
+      glob_av2[k] += gdir*gdir;
+      Gofr << setw(wd) << r << setw(wd) << gdir << endl;
+    }
+
+//g(r): final estimation with averages and errors
+
+    if(iblk==nblock){    
+      Gave.open("output_gofr.ave",ios::app);
+      double deltaV = 0;
+      double norm = 0;
+      for(int k=igofr; k<igofr+nbins; k++){
+        r = (k-igofr)*bin_size;
+        deltaV = ((4./3.)*M_PI*(pow(r+bin_size,3)-pow(r,3)));     // sphere volume normalization factor
+        norm = rho*npart*deltaV;                                  // normalization of gdir
+        glob_av[k] /= norm;                                       
+        glob_av2[k] /= pow(norm,2);                               // squared norm factor for squared averages
+        err_gdir = Error(glob_av[k],glob_av2[k],nblock);
+        Gave << setw(wd) << r << setw(wd) << glob_av[k]/(double)nblock << setw(wd) << err_gdir << endl;
+      }
+      Gave.close();
+    }
+
+    cout << "----------------------------" << endl << endl;
+
+    Epot.close();
+    Ekin.close();
+    Etot.close();
+    Temp.close();
+    Gofr.close();
+}
+
+
+void ConfFinal(void){     //Write final configuration
   ofstream WriteConf;
 
   cout << "Print final configuration to file config.final " << endl << endl;
@@ -479,8 +440,8 @@ void ConfFinal(void){			//Write final configuration
   return;
 }
 
-void ConfPreFinal(void){		//Write the old configuration
 
+void ConfOld(void){     //Write the configuration before the last one
   ofstream WriteConf;
 
   cout << "Print old configuration to file config.old " << endl << endl;
@@ -490,27 +451,35 @@ void ConfPreFinal(void){		//Write the old configuration
     WriteConf << xold[i]/box << "   " <<  yold[i]/box << "   " << zold[i]/box << endl;
   }
   WriteConf.close();
+
   return;
 }
 
-void ConfXYZ(int nconf){		//Write configuration in .xyz format
 
+void ConfXYZ(int nconf){ //Write configuration in .xyz format
   ofstream WriteXYZ;
 
   WriteXYZ.open("frames/config_" + to_string(nconf) + ".xyz");
   WriteXYZ << npart << endl;
   WriteXYZ << "This is only a comment!" << endl;
-
   for (int i=0; i<npart; ++i){
     WriteXYZ << "LJ  " << Pbc(x[i]) << "   " <<  Pbc(y[i]) << "   " << Pbc(z[i]) << endl;
   }
   WriteXYZ.close();
+
+  return;
 }
 
-double Pbc(double r){			//Algorithm for periodic boundary conditions with side L=box
+
+double Pbc(double r){  //Algorithm for periodic boundary conditions with side L=box
     return r - box * rint(r/box);
 }
 
+
+double Error(double sum, double sum2, int iblk){
+  if( iblk == 1 ) return 0.0;
+  else return sqrt((sum2/(double)iblk - pow(sum/(double)iblk,2))/(double)(iblk-1));
+}
 /****************************************************************
 *****************************************************************
     _/    _/  _/_/_/  _/       Numerical Simulation Laboratory

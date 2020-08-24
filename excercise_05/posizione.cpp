@@ -1,11 +1,15 @@
 #include "posizione.h"
-#include <cmath>
-using namespace std;
 
 Posizione::Posizione(){
-	m_x=0.;
-	m_y=0.;
-	m_z=0.;
+	m_x = 0.;
+	m_y = 0.;
+	m_z = 0.;
+}
+
+Posizione::Posizione(double x, double y){
+	m_x = x;
+	m_y = y;
+	m_z = 0.;
 }
 
 Posizione::Posizione(double x, double y, double z){
@@ -14,38 +18,46 @@ Posizione::Posizione(double x, double y, double z){
 	m_z=z;
 }
 
-double Posizione::GetX() const{
+double Posizione::Get_X() const{
 	return m_x;
 }
 
-double Posizione::GetY() const{
+double Posizione::Get_Y() const{
 	return m_y;
 }
 
-double Posizione::GetZ() const{
+double Posizione::Get_Z() const{
 	return m_z;
 }
 
-double Posizione::GetR() const{
-	return sqrt( pow(GetX(),2) + pow(GetY(),2) + pow(GetZ(),2) );
+double Posizione::Get_R() const{
+	return sqrt( pow(Get_X(),2) + pow(Get_Y(),2) + pow(Get_Z(),2) );
 }
 
-double Posizione::GetPhi() const{
-	return atan(GetY()/GetX());
+double Posizione::Get_Phi() const{
+	return atan(Get_Y()/Get_X());
 }
 
-double Posizione::GetTheta() const{
-	return acos(GetZ()/GetR());
+double Posizione::Get_Theta() const{
+	return acos(Get_Z()/Get_R());
 }
 
-double Posizione::GetRho() const{
-	return sqrt( pow(GetX(),2) + pow(GetY(),2) );
+double Posizione::Get_Rho() const{
+	return sqrt( pow(Get_X(),2) + pow(Get_Y(),2) );
 }
 
-double Posizione::Distanza(const Posizione& p) const{
-	return sqrt( pow(GetX()-p.GetX(),2) + pow(GetY()-p.GetY(),2) + pow(GetZ()-p.GetZ(),2) );
+double Posizione::Norm_R2(const Posizione& p) const{
+	return sqrt( pow(Get_X()-p.Get_X(),2) + pow(Get_Y()-p.Get_Y(),2) );
 }
 
-double Posizione::Distanza_quad(const Posizione& p) const{
-	return (pow(GetX()-p.GetX(),2) + pow(GetY()-p.GetY(),2) + pow(GetZ()-p.GetZ(),2));
+double Posizione::Norm_Quad_R2(const Posizione& p) const{
+	return ( pow(Get_X()-p.Get_X(),2) + pow(Get_Y()-p.Get_Y(),2) );
+}
+
+double Posizione::Norm_R3(const Posizione& p) const{
+	return sqrt( pow(Get_X()-p.Get_X(),2) + pow(Get_Y()-p.Get_Y(),2) + pow(Get_Z()-p.Get_Z(),2) );
+}
+
+double Posizione::Norm_Quad_R3(const Posizione& p) const{
+	return ( pow(Get_X()-p.Get_X(),2) + pow(Get_Y()-p.Get_Y(),2) + pow(Get_Z()-p.Get_Z(),2) );
 }

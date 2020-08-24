@@ -2,15 +2,14 @@
 #include "random.h"
 #include "funzione.h"
 #include "posizione.h"
-#include "integraleMC.h"
 using namespace std;
 
 int main(){
 
-	//  ||---|Orbitali s e p: densità di probabilità campionate tramite M(RT)^2 e stima del raggio medio|---||  //
+	//  || --- | Orbitali s e p: densità di probabilità campionate tramite M(RT)^2 e stima del raggio medio | --- ||  //
 
 	int n_step = pow(10,6);		//numero di step Monte Carlo
-	int n_cell = 100;		//numero di blocchi
+	int n_cell = 100;			//numero di blocchi
 
 	//******************************RANDOM_GEN******************************//
 	
@@ -39,17 +38,18 @@ int main(){
 
 	//******************************RANDOM_GEN******************************//
 
-	//---Uniform sampling: orbitale 1s---//
+	// --- Uniform sampling: orbitale 1s --- //
 
-	Posizione O;				//Origo initialis
+	Posizione O;	//Origo initialis
 
-	Posizione* RW = new Posizione [n_step];
+	vector <Posizione> RW;
 
-	for(int i=0; i<n_cell; i++)		//RW di n_step: inizializzo tutte le posizioni a (0,0,0)
-		RW[i] = O;
+	for(int i=0; i<n_step; i++)		//RW di n_step: inizializzo tutte le posizioni a (0,0,0)
+		RW.push_back(O);
 
-	double r = 1.2;			//passo dell'algoritmo di metropolis: non va scelto nè troppo grande nè troppo piccolo, in modo da garantire un'accettazione del 50% circa
-	int ctr = 0;			//contatore delle accettazioni
+	double r = 1.2;				//passo dell'algoritmo di metropolis: non va scelto nè troppo grande nè troppo piccolo, in modo da garantire un'accettazione del 50% circa
+	int ctr = 0;				//contatore delle accettazioni
+	const int n_eq = 100;		//numero di step di equilibrazione
 
 	double theta = 0;		//variabili di appoggio
 	double phi = 0;
@@ -61,11 +61,11 @@ int main(){
 	double z = 0;
 	double q = 0;
 
-	psi_1_0_0* psi = new psi_1_0_0();
+	psi_1_0_0* psi = new psi_1_0_0();		//funzione d'onda 1s
 
 	for(int i=1; i<n_step; i++){
 		theta = acos(1-2*rnd.Rannyu());		//theta distribuita come (1/2)*sin(theta)
-		phi = rnd.Rannyu(0,2*M_PI);		//phi distribuita uniformemente su [0,2pi)
+		phi = rnd.Rannyu(0,2*M_PI);			//phi distribuita uniformemente su [0,2pi)
 		x = x_old + r*sin(theta)*cos(phi);
 		y = y_old + r*sin(theta)*sin(phi);
 		z = z_old + r*cos(theta);
@@ -76,9 +76,11 @@ int main(){
 			y_old = y;
 			z_old = z;
 		}
-		RW[i].SetX(x_old);
-		RW[i].SetY(y_old);
-		RW[i].SetZ(z_old);
+		if(i > n_eq){				//equilibration steps
+			RW[i].Set_X(x_old);
+			RW[i].Set_Y(y_old);
+			RW[i].Set_Z(z_old);
+		}
 	}
 
 	cout << "1s orbital - uniform sampling: " << endl;
@@ -87,35 +89,33 @@ int main(){
 
 	//Esempio di campionamento per 3D plot
 
-	double* X = new double [n_step];
-	double* Y = new double [n_step];
-	double* Z = new double [n_step];
+	vector <double> X;
+	vector <double> Y;
+	vector <double> Z;
 
 	int sample = pow(10,4);
 
 	for(int i=0; i<sample; i++){
-		X[i] = RW[i].GetX();
-		Y[i] = RW[i].GetY();
-		Z[i] = RW[i].GetZ();
+		X.push_back(RW[i].Get_X());
+		Y.push_back(RW[i].Get_Y());
+		Z.push_back(RW[i].Get_Z());
 	}
 
-	Stampa("X_s.txt", X, sample);
-	Stampa("Y_s.txt", Y, sample);
-	Stampa("Z_s.txt", Z, sample);
+	Print("X_s.txt", X);
+	Print("Y_s.txt", Y);
+	Print("Z_s.txt", Z);
 	
 	//Stima del valore medio del raggio (distanza dall'origine)
 
-	double* R = new double [n_step];
-
+	vector <double> R;
 	for(int i=0; i<n_step; i++)
-		R[i] = RW[i].Distanza(O);
+		R.push_back(RW[i].Norm_R3(O));
 
-	double* media = new double [n_cell];
-	double* errore = new double [n_cell];
-	
-	Eval_ave_err(R, media, errore, n_step, n_cell);
-	Stampa("Mean_unif_s.txt", media, n_cell);
-	Stampa("Error_unif_s.txt", errore, n_cell);
+	vector <double> media;
+	vector <double> errore;
+	MC_Mean_Error(R, media, errore, n_step, n_cell);
+	Print("Mean_unif_s.txt", media);
+	Print("Error_unif_s.txt", errore);
 
 
 	//---Uniform sampling: orbitale 2p---//
@@ -136,7 +136,7 @@ int main(){
 	z = 0;
 	q = 0;
 
-	psi_2_1_0* psi2 = new psi_2_1_0();
+	psi_2_1_0* psi2 = new psi_2_1_0();		//funzione d'onda 2p_z
 
 	for(int i=1; i<n_step; i++){
 		theta = acos(1-2*rnd.Rannyu());
@@ -151,9 +151,11 @@ int main(){
 			y_old = y;
 			z_old = z;
 		}
-		RW[i].SetX(x_old);
-		RW[i].SetY(y_old);
-		RW[i].SetZ(z_old);
+		if(i > n_eq){
+			RW[i].Set_X(x_old);
+			RW[i].Set_Y(y_old);
+			RW[i].Set_Z(z_old);
+		}
 	}
 
 	cout << "2p_z orbital - uniform sampling: " << endl;
@@ -163,26 +165,26 @@ int main(){
 	//Esempio di campionamento per 3D plot
 
 	for(int i=0; i<sample; i++){
-		X[i] = RW[i].GetX();
-		Y[i] = RW[i].GetY();
-		Z[i] = RW[i].GetZ();
+		X[i] = RW[i].Get_X();
+		Y[i] = RW[i].Get_Y();
+		Z[i] = RW[i].Get_Z();
 	}
 
-	Stampa("X_p.txt", X, sample);
-	Stampa("Y_p.txt", Y, sample);
-	Stampa("Z_p.txt", Z, sample);
+	Print("X_p.txt", X);
+	Print("Y_p.txt", Y);
+	Print("Z_p.txt", Z);
 	
 	//Stima del valore medio del raggio (distanza dall'origine)
 
 	for(int i=0; i<n_step; i++)
-		R[i] = RW[i].Distanza(O);
+		R[i] = RW[i].Norm_R3(O);
 
-	Eval_ave_err(R, media, errore, n_step, n_cell);
-	Stampa("Mean_unif_p.txt", media, n_cell);
-	Stampa("Error_unif_p.txt", errore, n_cell);
+	MC_Mean_Error(R, media, errore, n_step, n_cell);
+	Print("Mean_unif_p.txt", media);
+	Print("Error_unif_p.txt", errore);
 
 
-	//---Normal sampling: orbitale 1s---//
+	// --- Normal sampling: orbitale 1s --- //
 
 	for(int l=0; l<n_cell; l++)		//inizializzo tutte le posizioni a (0,0,0)
 		RW[l] = O;
@@ -211,9 +213,11 @@ int main(){
 			y_old = y;
 			z_old = z;
 		}
-		RW[i].SetX(x_old);
-		RW[i].SetY(y_old);
-		RW[i].SetZ(z_old);
+		if(i > n_eq){
+			RW[i].Set_X(x_old);
+			RW[i].Set_Y(y_old);
+			RW[i].Set_Z(z_old);
+		}
 	}
 
 	cout << "1s orbital - multivariate normal sampling: " << endl;
@@ -223,11 +227,11 @@ int main(){
 	//Stima del valore medio del raggio (distanza dall'origine)
 
 	for(int i=0; i<n_step; i++)
-		R[i] = RW[i].Distanza(O);
+		R[i] = RW[i].Norm_R3(O);
 
-	Eval_ave_err(R, media, errore, n_step, n_cell);
-	Stampa("Mean_norm_s.txt", media, n_cell);
-	Stampa("Error_norm_s.txt", errore, n_cell);
+	MC_Mean_Error(R, media, errore, n_step, n_cell);
+	Print("Mean_norm_s.txt", media);
+	Print("Error_norm_s.txt", errore);
 
 
 	//---Normal sampling: orbitale 2p---//
@@ -259,9 +263,11 @@ int main(){
 			y_old = y;
 			z_old = z;
 		}
-		RW[i].SetX(x_old);
-		RW[i].SetY(y_old);
-		RW[i].SetZ(z_old);
+		if(i > n_eq){
+			RW[i].Set_X(x_old);
+			RW[i].Set_Y(y_old);
+			RW[i].Set_Z(z_old);
+		}
 	}
 
 	cout << "2p_z orbital - multivariate normal sampling: " << endl;
@@ -271,21 +277,13 @@ int main(){
 	//Stima del valore medio del raggio (distanza dall'origine)
 
 	for(int i=0; i<n_step; i++)
-		R[i] = RW[i].Distanza(O);
+		R[i] = RW[i].Norm_R3(O);
 
-	Eval_ave_err(R, media, errore, n_step, n_cell);
-	Stampa("Mean_norm_p.txt", media, n_cell);
-	Stampa("Error_norm_p.txt", errore, n_cell);
+	MC_Mean_Error(R, media, errore, n_step, n_cell);
+	Print("Mean_norm_p.txt", media);
+	Print("Error_norm_p.txt", errore);
 
 	rnd.SaveSeed();	
-
-	delete[] RW;
-	delete[] X;
-	delete[] Y;
-	delete[] Z;
-	delete[] R;
-	delete[] media;
-	delete[] errore;
 
 	return 0;
 }

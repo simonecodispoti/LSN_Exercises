@@ -43,58 +43,51 @@ int main(){
 	Coseno* Cos = new Coseno(0.5*M_PI, 0.5*M_PI, 0);
 	IntegraleMC integratore(rnd);
 
-	double* esiti = new double [n_cell];
+	vector <double> esiti;
 
 	for(int i=0; i<n_cell ;i++)
-		esiti[i] = integratore.IntegraleMedia(0, 1, n_step, Cos);
+		esiti.push_back(integratore.IntegraleMedia(0, 1, n_step, Cos));
 	
-	Stampa("Integrali.txt", esiti, n_cell);
+	Print("Integrali.txt", esiti);
 
-	double* media = new double [n_cell];
-	MC_MeanProg(media, n_cell, n_cell, esiti);
-	Stampa("I_unif.txt", media, n_cell);
-
-	double* errore = new double [n_cell];
-	MC_ErrProg(errore, n_cell, n_cell, esiti);
-	Stampa("I_error_unif.txt", errore, n_cell);
+	vector <double> media;
+	vector <double> errore;
+	MC_Mean_Error(esiti, media, errore, n_cell, n_cell);
+	
+	Print("I_unif.txt", media);
+	Print("I_error_unif.txt", errore);
 
 	delete Cos;
-	delete[] esiti;
-	delete[] media;
-	delete[] errore;
-
 
 	//---Metodo della media: Importance sampling esponenziale---//
 
 	Coseno_smorzato* f = new Coseno_smorzato(1-exp(-M_PI/2), 0.5*M_PI, 0.5*M_PI, 0);
 	IntegraleMC integratore2;
 
-	double* random = new double [n_step];
-	double* esiti2 = new double [n_cell];
+	vector <double> random;
+	for(int l=0; l<n_step; l++)
+			random.push_back(0);
+
+	vector <double> esiti2;
 
 	for(int i=0; i<n_cell ;i++){
 		for(int l=0; l<n_step; l++)
 			random[l] = 0;
 		for(int j=0; j<n_step; j++)
 			random[j] = -(2/M_PI)*log(1-(1-exp(-M_PI/2))*rnd.Rannyu());
-		esiti2[i] = integratore2.IntegraleMedia(0, 1, n_step, random, f);
+		esiti2.push_back(integratore2.IntegraleMedia(n_step, random, f));
 	}
 	
-	Stampa("Integrali_exp.txt", esiti2, n_cell);
+	Print("Integrali_exp.txt", esiti2);
 
-	double* media2 = new double [n_cell];
-	MC_MeanProg(media2, n_cell, n_cell, esiti2);
-	Stampa("I_exp.txt", media2, n_cell);
+	vector <double> media2;
+	vector <double> errore2;
+	MC_Mean_Error(esiti2, media2, errore2, n_cell, n_cell);
 
-	double* errore2 = new double [n_cell];
-	MC_ErrProg(errore2, n_cell, n_cell, esiti2);
-	Stampa("I_error_exp.txt", errore2, n_cell);
+	Print("I_exp.txt", media2);
+	Print("I_error_exp.txt", errore2);
 
 	delete f;
-	delete[] random;
-	delete[] esiti2;
-	delete[] media2;
-	delete[] errore2;
 
 
 	//  ||---|Random walks in 3D|---||  //
@@ -107,17 +100,16 @@ int main(){
 
 	Posizione O;		//origine (0,0,0)
 
-	Posizione** RW = new Posizione* [n_cell];		//vettore di RW lungo n_cell
-	
-	for(int i=0; i<n_cell; i++)				//vettori di Posizioni lunghi n_step
-		RW[i] = new Posizione [n_step];
+	vector <vector <Posizione> > RW;
+	vector <Posizione> init;
 
-	for(int i=0; i<n_cell; i++){				//inizializzio tutte le posizioni a (0,0,0)
-		for(int j=0; j<n_step; j++)
-			RW[i][j] = O;
-	}
+	for(int l=0; l<n_step; l++)
+		init.push_back(O);
 
-	double p = 0;						//variabili di appoggio
+	for(int i=0; i<n_cell; i++)
+		RW.push_back(init);
+
+	double p = 0;					//variabili di appoggio
 	double sum_x = 0;
 	double sum_y = 0;
 	double sum_z = 0;
@@ -128,59 +120,65 @@ int main(){
 		sum_z = 0;
 		for(int j=1; j<n_step; j++){			//ciclo sugli n_step di ogni RW
 			p = rnd.Rannyu();
-			if(p < 0.5){				//campionamento di variabile aleatoria discreta tramite partizione dell'intervallo [0,1)
+			if(p < 0.5){						//campionamento di variabile aleatoria discreta tramite partizione dell'intervallo [0,1)
 				if(p < double(1)/3){
 					if(p < double(1)/6){
 						sum_x += a;
-						RW[i][j].SetX(sum_x);
-						RW[i][j].SetY(sum_y);
-						RW[i][j].SetZ(sum_z);
+						RW[i][j].Set_X(sum_x);
+						RW[i][j].Set_Y(sum_y);
+						RW[i][j].Set_Z(sum_z);
 						continue;
 					}
 				sum_x -= a;
-				RW[i][j].SetX(sum_x);
-				RW[i][j].SetY(sum_y);
-				RW[i][j].SetZ(sum_z);
+				RW[i][j].Set_X(sum_x);
+				RW[i][j].Set_Y(sum_y);
+				RW[i][j].Set_Z(sum_z);
 				continue;
 				}
 			sum_y += a;
-			RW[i][j].SetX(sum_x);
-			RW[i][j].SetY(sum_y);
-			RW[i][j].SetZ(sum_z);
+			RW[i][j].Set_X(sum_x);
+			RW[i][j].Set_Y(sum_y);
+			RW[i][j].Set_Z(sum_z);
 			}
 			else if (p > 0.5){
 				if(p > double(2)/3){
 					if(p > double(5)/6){
 						sum_z -= a;
-						RW[i][j].SetX(sum_x);
-						RW[i][j].SetY(sum_y);
-						RW[i][j].SetZ(sum_z);
+						RW[i][j].Set_X(sum_x);
+						RW[i][j].Set_Y(sum_y);
+						RW[i][j].Set_Z(sum_z);
 						continue;
 					}
 				sum_z += a;
-				RW[i][j].SetX(sum_x);
-				RW[i][j].SetY(sum_y);
-				RW[i][j].SetZ(sum_z);
+				RW[i][j].Set_X(sum_x);
+				RW[i][j].Set_Y(sum_y);
+				RW[i][j].Set_Z(sum_z);
 				continue;
 				}
 			sum_y -= a;
-			RW[i][j].SetX(sum_x);
-			RW[i][j].SetY(sum_y);
-			RW[i][j].SetZ(sum_z);
+			RW[i][j].Set_X(sum_x);
+			RW[i][j].Set_Y(sum_y);
+			RW[i][j].Set_Z(sum_z);
 			}
 		}
 	}
 
 	int N = n_step*n_cell;
-	double* dist_quad = new double [N];		//vettore delle distanze quadratiche dall'origine
+	vector <double> dist_quad;		//vettore delle distanze quadratiche dall'origine
+	for(int l=0; l<N; l++)
+		dist_quad.push_back(0);
 
-	for(int i=0; i<n_step; i++){					//Distanza allo step i-esimo...
+	for(int i=0; i<n_step; i++){				//Distanza allo step i-esimo...
 		for(int j=0; j<n_cell; j++)				//...nella j-esima RW
-			dist_quad[i*n_cell + j] = RW[j][i].Distanza_quad(O);
+			dist_quad[i*n_cell + j] = RW[j][i].Norm_Quad_R2(O);
 	}
 
-	double* dist = new double [n_step];
-	double* dist_err = new double [n_step];
+	vector <double> dist;
+	vector <double> dist_err;
+	for(int l=0; l<n_step; l++){
+		dist.push_back(0);
+		dist_err.push_back(0);
+	}
 
 	double sum = 0;
 	double sum2 = 0;
@@ -202,8 +200,8 @@ int main(){
 
 	dist_err[0] = 0;
 
-	Stampa("dist_lattice.txt", dist, n_step);
-	Stampa("dist_err_lattice.txt", dist_err, n_step);
+	Print("dist_lattice.txt", dist);
+	Print("dist_err_lattice.txt", dist_err);
 
 	//******************************************************//
 	
@@ -211,21 +209,21 @@ int main(){
 
 	int dice = int(rnd.Rannyu(0,n_cell));
 
-	cout<<"Sampled RW on a lattice: "<<dice<<endl; 
+	cout << "Sampled RW on a lattice: "<< dice << endl; 
 
-	double* X = new double [n_step];
-	double* Y = new double [n_step];
-	double* Z = new double [n_step];
+	vector <double> X;
+	vector <double> Y;
+	vector <double> Z;
 
 	for(int i=0; i<n_step; i++){
-		X[i] = RW[dice][i].GetX();
-		Y[i] = RW[dice][i].GetY();
-		Z[i] = RW[dice][i].GetZ();
+		X.push_back(RW[dice][i].Get_X());
+		Y.push_back(RW[dice][i].Get_Y());
+		Z.push_back(RW[dice][i].Get_Z());
 	}
 
-	Stampa("X.txt", X, n_step);
-	Stampa("Y.txt", Y, n_step);
-	Stampa("Z.txt", Z, n_step);
+	Print("X.txt", X);
+	Print("Y.txt", Y);
+	Print("Z.txt", Z);
 
 	//******************************************************//
 
@@ -249,22 +247,22 @@ int main(){
 		sum_z = 0;
 		for(int j=1; j<n_step; j++){			//ciclo sugli n_step di ogni RW
 			theta = acos(1-2*rnd.Rannyu());		//theta distribuita come (1/2)*sin(theta)
-			phi = rnd.Rannyu(0,2*M_PI);		//phi distribuita uniformemente su [0,2pi)
+			phi = rnd.Rannyu(0,2*M_PI);			//phi distribuita uniformemente su [0,2pi)
 			sum_x += sin(theta)*cos(phi);
 			sum_y += sin(theta)*sin(phi);
 			sum_z += cos(theta);
-			RW[i][j].SetX(sum_x);
-			RW[i][j].SetY(sum_y);
-			RW[i][j].SetZ(sum_z);
+			RW[i][j].Set_X(sum_x);
+			RW[i][j].Set_Y(sum_y);
+			RW[i][j].Set_Z(sum_z);
 		}
 	}
 
 	for(int l=0; l++; l<N)		//vettore delle distanze quadratiche dall'origine
 		dist_quad[l] = 0;
 
-	for(int i=0; i<n_step; i++){					//Distanza allo step i-esimo...
-		for(int j=0; j<n_cell; j++)				//...nella j-esima RW
-			dist_quad[i*n_cell + j] = RW[j][i].Distanza_quad(O);
+	for(int i=0; i<n_step; i++){			//Distanza allo step i-esimo...
+		for(int j=0; j<n_cell; j++)			//...nella j-esima RW
+			dist_quad[i*n_cell + j] = RW[j][i].Norm_Quad_R2(O);
 	}
 
 	for(int l=0; l++; l<n_step){		//inizializzo i vettori usati in precedenza
@@ -292,8 +290,8 @@ int main(){
 
 	dist_err[0] = 0;
 
-	Stampa("dist_continuum.txt", dist, n_step);
-	Stampa("dist_err_continuum.txt", dist_err, n_step);
+	Print("dist_continuum.txt", dist);
+	Print("dist_err_continuum.txt", dist_err);
 
 	//******************************************************//
 	
@@ -301,38 +299,19 @@ int main(){
 
 	dice = int(rnd.Rannyu(0,n_cell));
 
-	cout<<"Sampled RW in continuum: "<<dice<<endl;
-
-	for(int l=0; l<n_step; l++){
-		X[l] = 0;
-		Y[l] = 0;
-		Z[l] = 0;
-	}
+	cout << "Sampled RW in continuum: "<< dice << endl;
 
 	for(int i=0; i<n_step; i++){
-		X[i] = RW[dice][i].GetX();
-		Y[i] = RW[dice][i].GetY();
-		Z[i] = RW[dice][i].GetZ();
+		X[i] = RW[dice][i].Get_X();
+		Y[i] = RW[dice][i].Get_Y();
+		Z[i] = RW[dice][i].Get_Z();
 	}
 
-	Stampa("Xc.txt", X, n_step);
-	Stampa("Yc.txt", Y, n_step);
-	Stampa("Zc.txt", Z, n_step);
+	Print("Xc.txt", X);
+	Print("Yc.txt", Y);
+	Print("Zc.txt", Z);
 
 	//******************************************************//
-
-	for(int l=0; l<n_cell; l++)
-		delete[] RW[l];
-	
-	delete[] RW;
-
-	delete[] dist_quad;
-	delete[] dist;
-	delete[] dist_err;
-
-	delete[] X;
-	delete[] Y;
-	delete[] Z;
 
 	rnd.SaveSeed();		//Salvo il seme per riproducibilità
 

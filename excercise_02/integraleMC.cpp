@@ -26,13 +26,13 @@ double IntegraleMC::IntegraleMedia(double xmin, double xmax, int npunti, Funzion
     return ((xmax-xmin)*sum)/npunti;
 }
 
-double IntegraleMC::IntegraleMedia(double xmin, double xmax, int npunti, double* vr, FunzioneBase* f){
+double IntegraleMC::IntegraleMedia(int npunti, const vector <double>& sample, FunzioneBase* f){
     
     double sum = 0.;
     
     for(int i=0; i<npunti; i++){
-        sum += (f->Eval(vr[i]));
+        sum += (f->Eval(sample[i]));
     }
     
-    return ((xmax-xmin)*sum)/npunti;
+    return sum/npunti;
 }

@@ -2,8 +2,7 @@
 #define integraleMC_H
 #include "random.h"
 #include "funzione.h"
-#include <iostream>
-#include <cmath>
+#include "utilities.h"
 using namespace std;
 
 class IntegraleMC{
@@ -16,7 +15,7 @@ class IntegraleMC{
     
 		double IntegraleHitOrMiss(double xmin, double xmax, double fmax, int npunti, FunzioneBase* f);		//metodo Hit or Miss semplice
 		double IntegraleMedia(double xmin, double xmax, int npunti, FunzioneBase* f);				//metodo della media con sampling uniforme
-		double IntegraleMedia(double xmin, double xmax, int npunti, double* vr, FunzioneBase* f);	//metodo della media con importance sampling specificato dal vettore vr
+		double IntegraleMedia(int npunti, const vector <double>& sample, FunzioneBase* f);			//metodo della media con importance sampling specificato dal vettore "sample"
     
 	private:
     

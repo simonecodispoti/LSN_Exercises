@@ -4,10 +4,10 @@ using namespace std;
 
 int main(){
 
-	//  ||---|Stima del prezzo di un'opzione europea|---||  //
+	//  || --- |Stima del prezzo di un'opzione europea| --- ||  //
 
-	int n_cell = 100;	//Numero di simulazioni
-	int n_step = 10000;	//Numero di step Monte Carlo: è la simulazione dell'intera traiettoria di un GBM
+	int n_cell = 100;		//Numero di simulazioni
+	int n_step = 10000;		//Numero di step Monte Carlo: è la simulazione dell'intera traiettoria di un GBM
 
 	//******************************RANDOM_GEN******************************//
 	
@@ -37,53 +37,49 @@ int main(){
 	//******************************RANDOM_GEN******************************//
 	
 	//Parametri del contratto
-
-	double S0 = 100;
+	
 	double K = 100;
 	double T = 1;
 
 	//Parametri di mercato
 
+	double S0 = 100;
 	double r = 0.1;
 	double sigma = 0.25;
 
 
-	//---Calcolo diretto delle opzioni Call e Put: n_step GBM(r,sigma^2) tramite salto diretto da 0 a T---//
+	// --- Calcolo diretto delle opzioni Call e Put: n_step GBM(r,sigma^2) tramite salto diretto da 0 a T --- //
 
-	double* call = new double [n_step];
-	double* put = new double [n_step];
+	vector <double> call;
+	vector <double> put;
 	double S = 0;
 	
 	for(int i=0; i<n_step; i++){
 		S = S0*exp((r-0.5*pow(sigma,2))*T + sigma*rnd.Gauss(0,1)*sqrt(T));
 		if(S > K){
-			call [i] = exp(-r*T)*(S-K);
-			put [i] = 0;
+			call.push_back(exp(-r*T)*(S-K));
+			put.push_back(0);
 		}
 		if(S < K){
-			call [i] = 0;
-			put [i] = exp(-r*T)*(K-S);	
+			call.push_back(0);
+			put.push_back(exp(-r*T)*(K-S));
 		}
 	}
 	
-	double* call_media = new double [n_cell];
-	MC_MeanProg(call_media, n_step, n_cell, call);
-	Stampa("Call_direct.txt", call_media, n_cell);
+	vector <double> call_media;
+	vector <double> call_error;
+	MC_Mean_Error(call, call_media, call_error, n_step, n_cell);
+	Print("Call_direct.txt", call_media);
+	Print("Call_direct_err.txt", call_error);
 
-	double* call_error = new double [n_cell];
-	MC_ErrProg(call_error, n_step, n_cell, call);
-	Stampa("Call_direct_err.txt", call_error, n_cell);
-
-	double* put_media = new double [n_cell];
-	MC_MeanProg(put_media, n_step, n_cell, put);
-	Stampa("Put_direct.txt", put_media, n_cell);
-
-	double* put_error = new double [n_cell];
-	MC_ErrProg(put_error, n_step, n_cell, put);
-	Stampa("Put_direct_err.txt", put_error, n_cell);
+	vector <double> put_media;
+	vector <double> put_error;
+	MC_Mean_Error(put, put_media, put_error, n_step, n_cell);
+	Print("Put_direct.txt", put_media);
+	Print("Put_direct_err.txt", put_error);
 
 
-	//---Calcolo con discretizzazione delle opzioni Call e Put: n_step GBM(0,sigma^2) tramite passi successivi di ampiezza dt da 0 a T---//
+	// --- Calcolo con discretizzazione delle opzioni Call e Put: n_step GBM(0,sigma^2) tramite passi successivi di ampiezza dt da 0 a T --- //
 	
 	for(int l=0; l<n_step; l++){
 		call [l] = 0;
@@ -97,45 +93,39 @@ int main(){
 		put_error [l] = 0;
 	}
 
-	int L = 100;		//numero di intervalli temporali in [0,T]
-	double dt = T/L;	//passo temporale
-	double S_prec = S0;	//variabile d'appoggio per memorizzare il valore di S(t)
+	int L = 100;			//numero di intervalli temporali in [0,T]
+	double dt = T/L;		//passo temporale
+	double S_prec = S0;		//variabile d'appoggio per memorizzare il valore di S(t)
 	S = 0;
+
+	vector <double> traj;
 	
 	for(int i=0; i<n_step; i++){
 		S_prec = S0;
 		for(int j=0; j<L; j++){
 			S = S_prec*exp((r-0.5*pow(sigma,2))*dt + sigma*rnd.Gauss(0,1)*sqrt(dt));
 			S_prec = S;
+			if(i==0) traj.push_back(S);		//salvo la prima traiettoria
 		}
 		if(S > K){
-			call [i] = exp(-r*T)*(S-K);
-			put [i] = 0;
+			call[i] = exp(-r*T)*(S-K);
+			put[i] = 0;
 		}
 		if(S < K){
-			call [i] = 0;
-			put [i] = exp(-r*T)*(K-S);	
+			call[i] = 0;
+			put[i] = exp(-r*T)*(K-S);
 		}
 	}
 
-	MC_MeanProg(call_media, n_step, n_cell, call);
-	Stampa("Call_discret.txt", call_media, n_cell);
+	Print("trajectory.txt", traj);
 
-	MC_ErrProg(call_error, n_step, n_cell, call);
-	Stampa("Call_discret_err.txt", call_error, n_cell);
+	MC_Mean_Error(call, call_media, call_error, n_step, n_cell);
+	Print("Call_discret.txt", call_media);
+	Print("Call_discret_err.txt", call_error);
 
-	MC_MeanProg(put_media, n_step, n_cell, put);
-	Stampa("Put_discret.txt", put_media, n_cell);
-
-	MC_ErrProg(put_error, n_step, n_cell, put);
-	Stampa("Put_discret_err.txt", put_error, n_cell);
-
-	delete[] call;
-	delete[] put;
-	delete[] call_media;
-	delete[] call_error;
-	delete[] put_media;
-	delete[] put_error;
+	MC_Mean_Error(put, put_media, put_error, n_step, n_cell);
+	Print("Put_discret.txt", put_media);
+	Print("Put_discret_err.txt", put_error);
 
 	rnd.SaveSeed();		//Salvo il seme per riproducibilità
 
