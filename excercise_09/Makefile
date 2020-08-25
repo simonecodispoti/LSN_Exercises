@@ -14,4 +14,4 @@ TSP.o : TSP.cpp TSP.h
 	$(CC) -c TSP.cpp -o TSP.o $(CFLAGS)
 
 clean :
-	rm *.o exercise9.exe
+	rm *.o exercise9.exe seed.out

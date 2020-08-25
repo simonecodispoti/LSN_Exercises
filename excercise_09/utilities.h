@@ -124,8 +124,19 @@ template <class T> void MC_Mean_Error(const vector <T>& input, vector <T>& avera
 		ave.push_back(0);
 		ave2.push_back(0);
 		sum2_prog.push_back(0);
-		average.push_back(0);
-		error.push_back(0);
+	}
+
+	if(average.size() == 0){
+		for(int i=0; i<n_cell; i++){
+			average.push_back(0);
+			error.push_back(0);
+		}
+	}
+	else if(average.size() == n_cell){
+		for(int i=0; i<n_cell; i++){
+			average[i] = 0;
+			error[i] = 0;
+		}
 	}
 
 	for(int i=0; i<n_cell; i++){

@@ -22,7 +22,7 @@ void Individual :: Print_DNA(){         // Simple visualization of the gene info
     cout << "-------------------------------------------------------" << endl << endl;
 }
 
-void Individual :: Print_DNA(string filename){        // Getting city coordinates in a file txt
+void Individual :: Print_DNA(string filename){        // Getting city coordinates in an output file
 
     ofstream out;
     out.open(filename);
@@ -41,7 +41,7 @@ bool Individual :: DNA_Corrupted(){
     /*
         Chek for the DNA of a TSP individual: we must fulffill two bonds:
           - every gene must be initialized (i.e. a "City" must be created, at least with a precise position);
-          - every gene must be different from each other (at least by the different posistions);
+          - every gene must be different from each other (at least by the different posistions ---> see operator == overload);
           - from the previuos point applied to every gene follows that every gene is not repeted in the DNA;
     */
    
@@ -59,7 +59,7 @@ bool Individual :: DNA_Corrupted(){
 
     for(int i=0; i<size-1; i++ ){
         for(int j=i+1; j<size; j++){
-            if(m_ind[i].Get_pos().Get_X() == m_ind[j].Get_pos().Get_X() && m_ind[i].Get_pos().Get_Y() == m_ind[j].Get_pos().Get_Y()){
+            if(m_ind[i] == m_ind[j] && m_ind[i] == m_ind[j]){
                 corrupted = 1;
                 return corrupted;
             }
@@ -152,7 +152,6 @@ vector <Individual> Generation_0(Individual progenitor, int size, Random& rand){
         exit(-1);
     }
 
-    gen_0.push_back(progenitor);
     for(int i=0; i<size; i++){
         for(int j=0; j<3; j++)
             progenitor.Swap_Mutation(rand);       // we generate random individuals simply applying 3 Swap Mutations to the "progenitor"
@@ -162,30 +161,63 @@ vector <Individual> Generation_0(Individual progenitor, int size, Random& rand){
     return gen_0;
 }
 
-int Natural_Selection(const vector <Individual>& pop, Random& rand){
+void Pop_Sorting(vector <Individual>& pop){          // population fitness evaluation adn sorting
 
+    for(int i=0; i<pop.size(); i++)     // fitness evaluation of each individual
+        pop[i].Eval_Fitness();
 
+    sort(pop.begin(), pop.end());       // sorting from most fit to least fit ---> see operator < overload
 }
 
-void Crossover(vector <Individual>& pop, int sel_1, int sel_2, Random& rand){
+int Natural_Selection(const vector <Individual>& pop, Random& rand){        // select an individual from the SORTED population with a probability proportional to its fitness
 
-    Individual father = pop[sel_1];
-    Individual mother = pop[sel_2];
-    int size = father.Get_Complexity();
+    int bias = 4;           // increase this parameter to obtain a stronger selection
+    int N = pop.size();
+    return int(N*pow(rand.Rannyu(),bias));
+}
+
+void Crossover(Individual& sel_1, Individual& sel_2, Random& rand){
+
+    int size = sel_1.Get_Complexity();
     int last = size - 1;
-    int tail = size/2 - 1;
+    int pos = int(rand.Rannyu(1, size));
 
-    Individual offspring_1(size);
-    Individual offspring_2(size);
-    offspring_1.Set_Gene(father.Get_Gene(0),0);
-    offspring_2.Set_Gene(mother.Get_Gene(0),0);
-
-    int pos = int(rand.Rannyu(tail, size));
-
-    
-
+    int ctr = 0;
+    Individual first_child;             // inheritance of the genes of the sel_2 ind different from the tail of the sel_1 ind
+    first_child.Add_Gene(sel_2.Get_Gene(0));
     for(int i=1; i<=last; i++){
-        pop[sel_1] = offspring_1;
-        pop[sel_2] = offspring_2;
+        ctr = 0;
+        for(int j=pos; j<=last; j++){
+            if(sel_2.Get_Gene(i) == sel_1.Get_Gene(j))
+                ctr ++;
+        }
+        if(ctr==0) first_child.Add_Gene(sel_2.Get_Gene(i));
+    }
+    for(int l=pos; l<=last; l++)        // inheritance of the tail of the sel_1 ind
+        first_child.Add_Gene(sel_1.Get_Gene(l));
+
+    Individual second_child;             // inheritance of the genes of the sel_1 ind different from the tail of the sel_2 ind
+    second_child.Add_Gene(sel_1.Get_Gene(0));
+    for(int i=1; i<=last; i++){
+        ctr = 0;
+        for(int j=pos; j<=last; j++){
+            if(sel_1.Get_Gene(i) == sel_2.Get_Gene(j))
+             ctr ++;
+        }
+        if(ctr==0) second_child.Add_Gene(sel_1.Get_Gene(i));
+    }
+    for(int l=pos; l<=last; l++)        // inheritance of the tail of the sel_2 ind
+        second_child.Add_Gene(sel_2.Get_Gene(l));
+
+    sel_1 = first_child;
+    sel_2 = second_child;
+
+    if(sel_1.DNA_Corrupted() or sel_2.DNA_Corrupted()){
+        cerr << "Crossover mutation failed!" << endl;
+        cerr << "DNA sequences corrupted sequences: " << endl << endl;
+        sel_1.Print_DNA();
+        sel_2.Print_DNA();
+        cerr << "Exit program" << endl;
+        exit(-2);
     }
 }
