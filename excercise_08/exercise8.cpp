@@ -58,12 +58,12 @@ int main(){
 	for(float i=10; i>=0.5; i-=0.5)
 		T.push_back(i);
 
-	int n_step = 10;					// setting the number of Metropolis moves for each new cooled system
-	const int equi_step = 10;
+	int n_step = 10;						// setting the number of Metropolis moves for each new cooled system
+	int equi_step = 10;
 
 	// --------------------------------------------------------------------------------------------------------------------------------
 
-	// SIMULATED ANNEALING ALGORITHM
+	// SIMULATED ANNEALING ALGORITHM: changes only in the above lines !!!
 
 	double mu_old = mu_in;					// support variables
 	double sigma_old = sigma_in;
@@ -145,6 +145,8 @@ int main(){
 		cout << "Optimum: " << energy_old << endl;
 		cout << "-------------------------------------------------------" << endl;
 	}
+
+	// ------------------------------------------------------------------------------------------------------
 
 	// COMMENT THE FOLLOWING SECTION IF INTERESTED ONLY IN THE SEARCH OF OPTIMAL PARAMETERS !!!
 

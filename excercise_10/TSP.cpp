@@ -169,11 +169,12 @@ void Pop_Sorting(vector <Individual>& pop){          // population fitness evalu
     sort(pop.begin(), pop.end());       // sorting from most fit to least fit ---> see operator < overload
 }
 
-int Natural_Selection(const vector <Individual>& pop, Random& rand){        // select an individual from the SORTED population with a probability proportional to its fitness
+Individual Natural_Selection(const vector <Individual>& pop, Random& rand){        // select an individual from the SORTED population with a probability proportional to its fitness
 
     int bias = 4;           // increase this parameter to obtain a stronger selection
     int N = pop.size();
-    return int(N*pow(rand.Rannyu(),bias));
+    int pos = int(N*pow(rand.Rannyu(),bias));
+    return pop[pos];
 }
 
 void Crossover(Individual& sel_1, Individual& sel_2, Random& rand){

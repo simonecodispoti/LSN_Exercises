@@ -4,6 +4,8 @@ using namespace std;
 
 int main(){
 
+	//  || --- | TSP - GA solver  | --- ||  //
+
     //******************************RANDOM_GEN******************************//
 	
 	Random rnd;            // this random generator is going to be used for GA
@@ -34,11 +36,15 @@ int main(){
 
 	// --- Settings --- //
 
+	// THESE ARE THE ONLY PARAMETERS THAT CAN BE CHANGED
 	int n_cities = 32;				// Problem complexity
 	Individual Adamo(n_cities);		// Progenitor
 	int n_ind = 500;				// Number of individuals in each population
 	int n_gen = 500;				// Number of generations 
 	int n_step = n_ind/2;			// Number of iterations in each generation
+	// ---------------------------------------------------------------------------
+
+	// CHOOSE A SINGLE CONFIGURATION AND COMMENT THE OTHER
 
 	// --- Circumference configuration --- //
 
@@ -55,9 +61,7 @@ int main(){
 		Posizione P(x,y);
 		City city(P);
 		Adamo.Set_Gene(city,i);
-	}
-
-	Adamo.Print_DNA("Adamo.conf");*/
+	}*/
 
 	// --- Square configuration --- //
 
@@ -74,9 +78,9 @@ int main(){
 		Adamo.Set_Gene(city,i);
 	}
 
-	Adamo.Print_DNA("Adamo.conf");
-
 	// --- Genetic Algorithm --- //
+
+	Adamo.Print_DNA("Adamo.conf");		// Print initial random path
 
 	vector <double> Square_dist;
 	vector <double> Square_dist_ave;
@@ -88,10 +92,8 @@ int main(){
 		cout << "--------------------" << endl; 
 		vector <Individual> next_gen;	// Next generation
 		for(int j=0; j<n_step; j++){	// Mutations step in each generation
-			int pos_1 = Natural_Selection(old_gen, rnd);		// Selecting two individuals
-			int pos_2 = Natural_Selection(old_gen, rnd);
-			Individual selected_1 = old_gen[pos_1];
-			Individual selected_2 = old_gen[pos_2];
+			Individual selected_1 = Natural_Selection(old_gen, rnd);	// Selecting two individuals from sorted population
+			Individual selected_2 = Natural_Selection(old_gen, rnd);
 			double alea = rnd.Rannyu();
 			if(alea <= 0.7)				// Crossover probability = 70%
 				Crossover(selected_1, selected_2, rnd);

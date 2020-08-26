@@ -32,11 +32,16 @@ int main(){
 
 	//******************************RANDOM_GEN******************************//
 
-	// --- Settings --- //
+	// --- Settings and annealing schedule --- //
 
+	// THESE ARE THE ONLY PARAMETERS THAT CAN BE CHANGED
 	int n_cities = 30;					// Problem complexity
-	Individual Initial(n_cities);		// System of cities 
+	Individual Initial(n_cities);		// System of cities
+	double max_temp = 25;				// Starting temperature
+	double min_temp = 0.001;			// Cooling limit
+	double scale = max_temp/100;		// Cooling scale factor
 	int n_step = pow(10,5);				// Number of iterations for each temperature
+	// -------------------------------------------------------------------------------
 
 	// --- Circumference configuration --- //
 
@@ -77,17 +82,12 @@ int main(){
 	// --- Simulated Annealing Algorithm --- //
 
 	vector <double> Square_dist;
-	Individual conf_old = Initial;
+	Individual conf_old = Initial;		// Support variables
 	Individual conf_new;
 	double beta = 0;
 	double cost_old = 0;
 	double cost_new = 0;
 	double p = 0;
-
-	// Annealing schedule
-	double max_temp = 25;
-	double min_temp = 0.001;
-	double scale = max_temp/100;	// scaling factor
 
 	for(double i=max_temp; i>=min_temp; i-=(i*scale)){		// Temperature cicle
 		beta = 1/i;
@@ -125,7 +125,6 @@ int main(){
 
 			Square_dist.push_back(cost_old);
 		}
-
 	}
 
 	conf_old.Print_DNA("Best.conf");		// Print the best path

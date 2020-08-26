@@ -98,6 +98,6 @@ void Crossover(Individual& sel_1, Individual& sel_2, Random& rand);
 
 vector <Individual> Generation_0(Individual progenitor, int size, Random& rand);
 void Pop_Sorting(vector <Individual>& pop);
-int Natural_Selection(const vector <Individual>& pop, Random& rand);
+Individual Natural_Selection(const vector <Individual>& pop, Random& rand);
 
 #endif /* TSP_H */
