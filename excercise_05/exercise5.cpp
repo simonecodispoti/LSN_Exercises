@@ -53,9 +53,11 @@ int main(){
 
 	double theta = 0;		//variabili di appoggio
 	double phi = 0;
+	// inizio dall'origine:
 	double x_old = 0;
 	double y_old = 0;
 	double z_old = 0;
+	// --------------------
 	double x = 0;
 	double y = 0;
 	double z = 0;
@@ -128,9 +130,11 @@ int main(){
 
 	theta = 0;
 	phi = 0;
+	// inizio dal centro del lobo superiore:
 	x_old = 0;
 	y_old = 0;
-	z_old = 0;
+	z_old = 4;
+	// ------------------------------------
 	x = 0;
 	y = 0;
 	z = 0;
@@ -194,9 +198,11 @@ int main(){
 
 	theta = 0;
 	phi = 0;
+	// inizio dall'origine:
 	x_old = 0;
 	y_old = 0;
 	z_old = 0;
+	// --------------------
 	x = 0;
 	y = 0;
 	z = 0;
@@ -244,9 +250,11 @@ int main(){
 
 	theta = 0;
 	phi = 0;
+	// inizio dal centro del lobo superiore:
 	x_old = 0;
 	y_old = 0;
-	z_old = 0;
+	z_old = 4;
+	// ------------------------------------
 	x = 0;
 	y = 0;
 	z = 0;

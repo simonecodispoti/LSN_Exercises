@@ -74,7 +74,7 @@ int main(){
 		for(int l=0; l<n_step; l++)
 			random[l] = 0;
 		for(int j=0; j<n_step; j++)
-			random[j] = -(2/M_PI)*log(1-(1-exp(-M_PI/2))*rnd.Rannyu());
+			random[j] = -(2/M_PI)*log(1-(1-exp(-M_PI/2))*rnd.Rannyu());		// Inverse cumulative method for that distribution
 		esiti2.push_back(integratore2.IntegraleMedia(n_step, random, f));
 	}
 	

@@ -6,7 +6,7 @@ int main(){
 
 	//  || --- | stima del valor medio e della varianza per una distribuzione uniforme | --- ||  //
 
-	int n_step = 10000;		// numero di step Monte Carlo
+	int n_step = 10000;		// numero di step Monte Carlo totali
 	int n_cell = 100;		// numero di blocchi
 
 	//******************************RANDOM_GEN******************************//

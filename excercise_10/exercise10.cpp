@@ -35,17 +35,17 @@ int main(){
 	// --- Settings and annealing schedule --- //
 
 	// THESE ARE THE ONLY PARAMETERS THAT CAN BE CHANGED
-	int n_cities = 30;					// Problem complexity
+	int n_cities = 32;					// Problem complexity
 	Individual Initial(n_cities);		// System of cities
-	double max_temp = 25;				// Starting temperature
+	double max_temp = 100;				// Starting temperature
 	double min_temp = 0.001;			// Cooling limit
-	double scale = max_temp/100;		// Cooling scale factor
-	int n_step = pow(10,5);				// Number of iterations for each temperature
+	double scale = max_temp/1000;		// Cooling scale factor
+	int n_step = pow(10,4);				// Number of iterations for each temperature
 	// -------------------------------------------------------------------------------
 
 	// --- Circumference configuration --- //
 
-	/*double r = 1.;		// Unitary radius
+	double r = 1.;		// Unitary radius
 
 	double theta = 0;
 	double x = 0;
@@ -60,11 +60,9 @@ int main(){
 		Initial.Set_Gene(city,i);
 	}
 
-	Initial.Print_DNA("Initial.conf");*/
-
 	// --- Square configuration --- //
 
-	double L = 1.;		// Unitary length
+	/*double L = 1.;		// Unitary length
 
 	double x = 0;
 	double y = 0;
@@ -75,13 +73,15 @@ int main(){
 		Posizione P(x,y);
 		City city(P);
 		Initial.Set_Gene(city,i);
-	}
-
-	Initial.Print_DNA("Initial.conf");
+	}*/
 
 	// --- Simulated Annealing Algorithm --- //
 
-	vector <double> Square_dist;
+	Initial.Print_DNA("Initial.conf");	// Print initial configuration
+
+	vector <double> Square_dist;		// containers to print informations
+	vector <double> Temperature;
+
 	Individual conf_old = Initial;		// Support variables
 	Individual conf_new;
 	double beta = 0;
@@ -92,7 +92,8 @@ int main(){
 	for(double i=max_temp; i>=min_temp; i-=(i*scale)){		// Temperature cicle
 		beta = 1/i;
 		cout << "Temperature = " << i << endl;
-		cout << "--------------------" << endl; 
+		cout << "----------------------------" << endl; 
+		Temperature.push_back(i);
 		for(int j=0; j<n_step; j++){			// Mutations step for each cooling
 			conf_new = conf_old;				// Saving old configuration for mutation
 
@@ -127,7 +128,8 @@ int main(){
 		}
 	}
 
-	conf_old.Print_DNA("Best.conf");		// Print the best path
+	Print("Temperatures.dat", Temperature);		// Print the annealing schedule
+	conf_old.Print_DNA("Best.conf");			// Print the best path
 	Print("Distance.best", Square_dist);		// Print the best quadratic distance
 
     rnd.SaveSeed();
