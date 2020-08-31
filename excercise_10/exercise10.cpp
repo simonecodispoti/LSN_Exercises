@@ -43,6 +43,8 @@ int main(){
 	int n_step = pow(10,4);				// Number of iterations for each temperature
 	// -------------------------------------------------------------------------------
 
+	// CHOOSE A SINGLE CONFIGURATION AND COMMENT THE OTHER
+
 	// --- Circumference configuration --- //
 
 	double r = 1.;		// Unitary radius
